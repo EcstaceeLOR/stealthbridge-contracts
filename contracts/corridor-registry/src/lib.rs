@@ -5,7 +5,7 @@
 //! "Enabled" is a governance flag, never a guarantee of available liquidity.
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, deploy::ContractExecutable, Address,
+    contract, contracterror, contractimpl, contracttype, Address,
     BytesN, Env, String,
 };
 
@@ -205,7 +205,7 @@ impl CorridorRegistry {
         env.storage().instance().remove(&DataKey::Upgrade);
         renew_instance(&env);
         env.deployer()
-            .update_current_contract(ContractExecutable::Wasm(wasm_hash));
+            .update_current_contract_wasm(wasm_hash);
         Ok(())
     }
     /// Admin-controlled global stop. Reversing it also requires admin auth.
