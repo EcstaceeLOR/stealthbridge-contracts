@@ -14,7 +14,18 @@ for name,contract in metadata["contracts"].items():
     source=Path(contract["source"]).read_text()
     methods=set(re.findall(r"pub fn ([a-z_]+)\s*\(",source))
     declared=set(contract["reads"])|set(contract["writes"])
-    assert declared<=methods,(name,sorted(declared-methods))
+    # Constructor and audited corridor upgrade lifecycle are intentionally
+    # outside source-only read discovery; all other public functions must
+    # appear in the reviewed ABI inventory. An unlisted new method is drift.
+    expected_undisclosed = {
+        "corridor-registry": {"__constructor", "propose_upgrade", "pending_upgrade",
+                              "cancel_upgrade", "execute_upgrade"},
+        "policy-registry": {"__constructor"},
+        "governance-gate": {"__constructor"},
+    }[name]
+    assert methods-declared == expected_undisclosed, (
+        name, "unlisted or missing public methods",
+        sorted(methods-declared), sorted(expected_undisclosed))
     assert set(contract["reads"]).isdisjoint(set(contract["writes"])),name
     for method,info in contract["reads"].items():
         assert isinstance(info["args"],list) and len(info["args"]) <= {"corridor-registry":2,"policy-registry":3,"governance-gate":4}[name],name

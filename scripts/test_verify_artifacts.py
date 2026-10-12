@@ -31,6 +31,8 @@ class VerifyArtifactsTests(unittest.TestCase):
             "dirty": False, "sdk": "27.0.6", "targetProtocol": 27,
             "target": "wasm32v1-none", "reproducibleBuilds": 2,
             "contractArtifacts": digests,
+            "isolatedBuildDigests": {name: [artifact["wasmSha256"]]*2
+                                     for name, artifact in digests.items()},
             **digests["corridor-registry"],
         }
         contents["provenance.json"] = (json.dumps(evidence) + "\n").encode()
@@ -58,6 +60,22 @@ class VerifyArtifactsTests(unittest.TestCase):
     def test_checksum_manifest_cannot_omit_files(self):
         (self.root / "SHA256SUMS").write_text("only one file\n")
         with self.assertRaisesRegex(ValueError, "SHA256SUMS"):
+            verify(self.root)
+
+    def test_second_isolated_build_hash_drift_rejected(self):
+        path = self.root / "provenance.json"
+        data = json.loads(path.read_text())
+        data["isolatedBuildDigests"]["governance-gate"][1] = "0" * 64
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "isolated builds disagree"):
+            verify(self.root)
+
+    def test_reproducibility_hash_evidence_required(self):
+        path = self.root / "provenance.json"
+        data = json.loads(path.read_text())
+        del data["isolatedBuildDigests"]
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "digest pairs missing"):
             verify(self.root)
 
     def test_unreproducible_metadata_rejected(self):

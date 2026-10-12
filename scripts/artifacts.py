@@ -86,6 +86,8 @@ def main():
         **source,
         "wasmSha256": corridor["wasmSha256"], "abiSha256": corridor["abiSha256"],
         "wasmBytes": corridor["wasmBytes"], "contractArtifacts": digests,
+        "isolatedBuildDigests": {name: [sha(builds[0][name]), sha(builds[1][name])]
+                                 for name in contracts},
         "rustc": rust, "stellarCli": cli_version,
         "sdk": "27.0.6", "sdkMajor": 27, "targetProtocol": 27,
         "target": "wasm32v1-none", "reproducibleBuilds": 2,

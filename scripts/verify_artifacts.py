@@ -35,6 +35,16 @@ def verify(root):
     if not isinstance(artifacts, dict) or set(artifacts) != set(CONTRACT_FILES):
         raise ValueError("all three contract artifacts must be present, with no extra names")
 
+    isolated = evidence.get("isolatedBuildDigests")
+    if not isinstance(isolated, dict) or set(isolated) != set(CONTRACT_FILES):
+        raise ValueError("isolated WASM digest pairs missing")
+    for name in CONTRACT_FILES:
+        pair = isolated[name]
+        if not isinstance(pair, list) or len(pair) != 2 or any(
+                not isinstance(item, str) or len(item) != 64 for item in pair):
+            raise ValueError(f"invalid reproducibility hash pair for {name}")
+        if pair[0] != pair[1] or pair[0] != artifacts[name]["wasmSha256"]:
+            raise ValueError(f"isolated builds disagree for {name}")
     digests = {}
     for name, (wasm_name, abi_name) in CONTRACT_FILES.items():
         metadata = artifacts[name]
