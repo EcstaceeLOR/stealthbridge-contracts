@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "network": "testnet",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "releaseStatus": "not-deployed",
+  "privacyVerified": false,
+  "paymentExecutionEnabled": false,
+  "contracts": [
+    "corridor-registry",
+    "policy-registry",
+    "governance-gate"
+  ],
+  "requiredEvidence": [
+    {
+      "gate": "source_reproducibility",
+      "status": "pending",
+      "receiptSha256": null
+    },
+    {
+      "gate": "operator_authorization",
+      "status": "pending",
+      "receiptSha256": null
+    },
+    {
+      "gate": "testnet_transaction_inclusion",
+      "status": "pending",
+      "receiptSha256": null
+    },
+    {
+      "gate": "onchain_wasm_and_interface",
+      "status": "pending",
+      "receiptSha256": null
+    },
+    {
+      "gate": "pause_and_recovery_drill",
+      "status": "pending",
+      "receiptSha256": null
+    },
+    {
+      "gate": "independent_review",
+      "status": "pending",
+      "receiptSha256": null
+    }
+  ],
+  "deploymentTransactionHashes": [],
+  "contractAddresses": {},
+  "operatorStatementSignature": null,
+  "rollbackPauseEvidence": null
+}

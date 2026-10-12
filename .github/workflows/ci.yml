@@ -35,6 +35,8 @@ jobs:
       - name: Ensure three-contract deployment preflight makes no live claims
         run: python3 scripts/preflight_testnet.py
       - run: python3 scripts/validate_manifest.py
+      - name: Reject unsigned or unsupported Testnet deployment evidence
+        run: python3 scripts/validate_deployment_evidence.py
       - run: python3 scripts/verify_public_interface.py
       - run: python3 scripts/benchmark.py
       - uses: actions/upload-artifact@v4
