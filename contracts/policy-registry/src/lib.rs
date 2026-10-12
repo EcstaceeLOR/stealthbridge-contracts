@@ -463,4 +463,95 @@ mod tests {
         assert!(client.try_set_paused(&true).is_err());
         assert!(client.try_set_rule(&id, &rule).is_err());
     }
+    /// Deterministic property matrix: revisions never roll back, emergency pause
+    /// never authorizes new enabled configurations, and all public reads fail closed.
+    #[test]
+    fn policy_revision_and_pause_property_matrix() {
+        for id_len in [1usize, 32, 64, 128] {
+            let env = Env::default();
+            env.mock_all_auths();
+            let admin = Address::generate(&env);
+            let contract = env.register(PolicyRegistry, (admin,));
+            let client = PolicyRegistryClient::new(&env, &contract);
+            let id = String::from_str(&env, &"p".repeat(id_len));
+            let commitment = BytesN::from_array(&env, &[id_len as u8; 32]);
+            assert!(!client.is_effective(&id));
+            assert!(!client.is_effective_commitment(&id, &1, &commitment));
+
+            for revision in 1u32..=12 {
+                let enabled = revision % 2 == 1;
+                let rule = PolicyRecord {
+                    revision,
+                    enabled,
+                    public_commitment: commitment.clone(),
+                };
+                // Pause blocks activation but not revision-monotonic revocation.
+                if enabled && revision > 1 {
+                    client.set_paused(&true);
+                    assert_eq!(
+                        client.try_set_rule(&id, &rule),
+                        Err(Ok(PolicyError::Paused))
+                    );
+                    assert!(!client.is_effective(&id));
+                    client.set_paused(&false);
+                }
+                client.set_rule(&id, &rule);
+                assert_eq!(client.get_rule(&id), Some(rule.clone()));
+                assert_eq!(client.is_effective(&id), enabled);
+                assert_eq!(
+                    client.is_effective_commitment(&id, &revision, &commitment),
+                    enabled
+                );
+                assert!(!client.is_effective_commitment(&id, &(revision + 1), &commitment));
+                assert_eq!(
+                    client.try_set_rule(&id, &rule),
+                    Err(Ok(PolicyError::StaleRevision))
+                );
+                assert_eq!(client.get_rule(&id), Some(rule));
+            }
+        }
+    }
+
+    /// Across multiple independent contract instances, arbitrary unauthorized
+    /// identities cannot pause or revise public governance state.
+    #[test]
+    fn unauthorized_policy_writes_are_invariant_under_id_size() {
+        for size in [1usize, 8, 64, 128] {
+            let env = Env::default();
+            let admin = Address::generate(&env);
+            let outsider = Address::generate(&env);
+            let contract = env.register(PolicyRegistry, (admin.clone(),));
+            let client = PolicyRegistryClient::new(&env, &contract);
+            let id = String::from_str(&env, &"k".repeat(size));
+            let rule = PolicyRecord {
+                revision: 1,
+                enabled: true,
+                public_commitment: BytesN::from_array(&env, &[1u8; 32]),
+            };
+            env.mock_auths(&[MockAuth {
+                address: &outsider,
+                invoke: &MockAuthInvoke {
+                    contract: &contract,
+                    fn_name: "set_rule",
+                    args: (id.clone(), rule.clone()).into_val(&env),
+                    sub_invokes: &[],
+                },
+            }]);
+            assert!(client.try_set_rule(&id, &rule).is_err());
+            assert_eq!(client.get_rule(&id), None);
+            assert!(!client.is_effective(&id));
+            env.mock_auths(&[MockAuth {
+                address: &outsider,
+                invoke: &MockAuthInvoke {
+                    contract: &contract,
+                    fn_name: "set_paused",
+                    args: (true,).into_val(&env),
+                    sub_invokes: &[],
+                },
+            }]);
+            assert!(client.try_set_paused(&true).is_err());
+            assert!(!client.is_paused());
+            assert_eq!(client.admin(), admin);
+        }
+    }
 }
