@@ -49,7 +49,12 @@ pub enum RegistryError {
     Paused = 4,
     InvalidExpiration = 5,
     NotEnabled = 6,
-    UpgradeRequiresPause = 7,    InvalidUpgradeDelay = 8,    InvalidUpgradeHash = 9,    NoPendingUpgrade = 10,    UpgradeNotReady = 11,    UpgradeExpired = 12,
+    UpgradeRequiresPause = 7,
+    InvalidUpgradeDelay = 8,
+    InvalidUpgradeHash = 9,
+    NoPendingUpgrade = 10,
+    UpgradeNotReady = 11,
+    UpgradeExpired = 12,
 }
 
 #[contract]
@@ -151,7 +156,11 @@ impl CorridorRegistry {
             .ok_or(RegistryError::InvalidUpgradeDelay)?;
         env.storage().instance().set(
             &DataKey::Upgrade,
-            &UpgradeProposal { wasm_hash, ready_at_ledger, expires_at_ledger },
+            &UpgradeProposal {
+                wasm_hash,
+                ready_at_ledger,
+                expires_at_ledger,
+            },
         );
         renew_instance(&env);
         Ok(())
@@ -178,7 +187,9 @@ impl CorridorRegistry {
         if !Self::is_paused(env.clone()) {
             return Err(RegistryError::UpgradeRequiresPause);
         }
-        let proposal: UpgradeProposal = env.storage().instance()
+        let proposal: UpgradeProposal = env
+            .storage()
+            .instance()
             .get(&DataKey::Upgrade)
             .ok_or(RegistryError::NoPendingUpgrade)?;
         if proposal.wasm_hash != wasm_hash {
@@ -193,7 +204,8 @@ impl CorridorRegistry {
         }
         env.storage().instance().remove(&DataKey::Upgrade);
         renew_instance(&env);
-        env.deployer().update_current_contract(ContractExecutable::Wasm(wasm_hash));
+        env.deployer()
+            .update_current_contract(ContractExecutable::Wasm(wasm_hash));
         Ok(())
     }
     /// Admin-controlled global stop. Reversing it also requires admin auth.
