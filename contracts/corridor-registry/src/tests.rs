@@ -85,23 +85,53 @@ fn upgrade_proposals_require_admin_pause_valid_hash_and_bounded_delay() {
     assert_eq!(client.pending_upgrade(), None);
     f.env.mock_auths(&[]);
     assert!(client.try_propose_upgrade(&digest, &10).is_err());
-    f.auth(&f.admin, "propose_upgrade", (digest.clone(), 10u32).into_val(&f.env));
-    assert_eq!(client.try_propose_upgrade(&digest, &10), Err(Ok(RegistryError::UpgradeRequiresPause)));
+    f.auth(
+        &f.admin,
+        "propose_upgrade",
+        (digest.clone(), 10u32).into_val(&f.env),
+    );
+    assert_eq!(
+        client.try_propose_upgrade(&digest, &10),
+        Err(Ok(RegistryError::UpgradeRequiresPause))
+    );
     f.auth(&f.admin, "set_paused", (true,).into_val(&f.env));
     client.set_paused(&true);
     for delay in [0, 4, 20_001] {
-        f.auth(&f.admin, "propose_upgrade", (digest.clone(), delay).into_val(&f.env));
-        assert_eq!(client.try_propose_upgrade(&digest, &delay), Err(Ok(RegistryError::InvalidUpgradeDelay)));
+        f.auth(
+            &f.admin,
+            "propose_upgrade",
+            (digest.clone(), delay).into_val(&f.env),
+        );
+        assert_eq!(
+            client.try_propose_upgrade(&digest, &delay),
+            Err(Ok(RegistryError::InvalidUpgradeDelay))
+        );
     }
     let zero = BytesN::from_array(&f.env, &[0u8; 32]);
-    f.auth(&f.admin, "propose_upgrade", (zero.clone(), 10u32).into_val(&f.env));
-    assert_eq!(client.try_propose_upgrade(&zero, &10), Err(Ok(RegistryError::InvalidUpgradeHash)));
+    f.auth(
+        &f.admin,
+        "propose_upgrade",
+        (zero.clone(), 10u32).into_val(&f.env),
+    );
+    assert_eq!(
+        client.try_propose_upgrade(&zero, &10),
+        Err(Ok(RegistryError::InvalidUpgradeHash))
+    );
     assert_eq!(client.pending_upgrade(), None);
-    f.auth(&f.admin, "propose_upgrade", (digest.clone(), 10u32).into_val(&f.env));
+    f.auth(
+        &f.admin,
+        "propose_upgrade",
+        (digest.clone(), 10u32).into_val(&f.env),
+    );
     client.propose_upgrade(&digest, &10);
-    assert_eq!(client.pending_upgrade(), Some(UpgradeProposal {
-        wasm_hash: digest.clone(), ready_at_ledger: 110, expires_at_ledger: 10_110,
-    }));
+    assert_eq!(
+        client.pending_upgrade(),
+        Some(UpgradeProposal {
+            wasm_hash: digest.clone(),
+            ready_at_ledger: 110,
+            expires_at_ledger: 10_110,
+        })
+    );
     f.env.mock_auths(&[]);
     assert!(client.try_cancel_upgrade().is_err());
     assert_eq!(client.pending_upgrade().unwrap().wasm_hash, digest);
@@ -118,24 +148,63 @@ fn upgrade_execution_rejects_wrong_hash_early_execution_expiration_and_unpause()
     let wrong = BytesN::from_array(&f.env, &[10u8; 32]);
     f.auth(&f.admin, "set_paused", (true,).into_val(&f.env));
     client.set_paused(&true);
-    f.auth(&f.admin, "execute_upgrade", (digest.clone(),).into_val(&f.env));
-    assert_eq!(client.try_execute_upgrade(&digest), Err(Ok(RegistryError::NoPendingUpgrade)));
-    f.auth(&f.admin, "propose_upgrade", (digest.clone(), 5u32).into_val(&f.env));
+    f.auth(
+        &f.admin,
+        "execute_upgrade",
+        (digest.clone(),).into_val(&f.env),
+    );
+    assert_eq!(
+        client.try_execute_upgrade(&digest),
+        Err(Ok(RegistryError::NoPendingUpgrade))
+    );
+    f.auth(
+        &f.admin,
+        "propose_upgrade",
+        (digest.clone(), 5u32).into_val(&f.env),
+    );
     client.propose_upgrade(&digest, &5);
-    f.auth(&f.admin, "execute_upgrade", (wrong.clone(),).into_val(&f.env));
-    assert_eq!(client.try_execute_upgrade(&wrong), Err(Ok(RegistryError::InvalidUpgradeHash)));
-    f.auth(&f.admin, "execute_upgrade", (digest.clone(),).into_val(&f.env));
-    assert_eq!(client.try_execute_upgrade(&digest), Err(Ok(RegistryError::UpgradeNotReady)));
+    f.auth(
+        &f.admin,
+        "execute_upgrade",
+        (wrong.clone(),).into_val(&f.env),
+    );
+    assert_eq!(
+        client.try_execute_upgrade(&wrong),
+        Err(Ok(RegistryError::InvalidUpgradeHash))
+    );
+    f.auth(
+        &f.admin,
+        "execute_upgrade",
+        (digest.clone(),).into_val(&f.env),
+    );
+    assert_eq!(
+        client.try_execute_upgrade(&digest),
+        Err(Ok(RegistryError::UpgradeNotReady))
+    );
     f.auth(&f.admin, "set_paused", (false,).into_val(&f.env));
     client.set_paused(&false);
     f.advance(6);
-    f.auth(&f.admin, "execute_upgrade", (digest.clone(),).into_val(&f.env));
-    assert_eq!(client.try_execute_upgrade(&digest), Err(Ok(RegistryError::UpgradeRequiresPause)));
+    f.auth(
+        &f.admin,
+        "execute_upgrade",
+        (digest.clone(),).into_val(&f.env),
+    );
+    assert_eq!(
+        client.try_execute_upgrade(&digest),
+        Err(Ok(RegistryError::UpgradeRequiresPause))
+    );
     f.auth(&f.admin, "set_paused", (true,).into_val(&f.env));
     client.set_paused(&true);
     f.advance(10_000);
-    f.auth(&f.admin, "execute_upgrade", (digest.clone(),).into_val(&f.env));
-    assert_eq!(client.try_execute_upgrade(&digest), Err(Ok(RegistryError::UpgradeExpired)));
+    f.auth(
+        &f.admin,
+        "execute_upgrade",
+        (digest.clone(),).into_val(&f.env),
+    );
+    assert_eq!(
+        client.try_execute_upgrade(&digest),
+        Err(Ok(RegistryError::UpgradeExpired))
+    );
     assert_eq!(client.pending_upgrade().unwrap().wasm_hash, digest);
     f.auth(&f.admin, "cancel_upgrade", ().into_val(&f.env));
     client.cancel_upgrade();
