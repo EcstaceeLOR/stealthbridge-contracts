@@ -5,7 +5,8 @@
 //! "Enabled" is a governance flag, never a guarantee of available liquidity.
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, Address, BytesN, Env, String,
+    contract, contracterror, contractimpl, contracttype, deploy::ContractExecutable, Address,
+    BytesN, Env, String,
 };
 
 const TTL_THRESHOLD: u32 = 17_280;
@@ -19,6 +20,7 @@ enum DataKey {
     Paused,
     Corridor(String),
     Approval(String),
+    Upgrade,
 }
 
 /// Public, on-chain approval of a *specific* off-chain corridor config.
@@ -27,6 +29,14 @@ enum DataKey {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CorridorApproval {
     pub config_digest: BytesN<32>,
+    pub expires_at_ledger: u32,
+}
+/// Pending release review; a hash is an identifier, never proof of an audit.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpgradeProposal {
+    pub wasm_hash: BytesN<32>,
+    pub ready_at_ledger: u32,
     pub expires_at_ledger: u32,
 }
 #[contracterror]
@@ -39,6 +49,7 @@ pub enum RegistryError {
     Paused = 4,
     InvalidExpiration = 5,
     NotEnabled = 6,
+    UpgradeRequiresPause = 7,    InvalidUpgradeDelay = 8,    InvalidUpgradeHash = 9,    NoPendingUpgrade = 10,    UpgradeNotReady = 11,    UpgradeExpired = 12,
 }
 
 #[contract]
@@ -112,6 +123,79 @@ impl CorridorRegistry {
         Ok(())
     }
 
+    /// Public release notice. Waiting at least five ledgers lets independent
+    /// reviewers compare uploaded WASM against the explicitly approved hash.
+    /// Only the current admin may stage or replace an upgrade.
+    pub fn propose_upgrade(
+        env: Env,
+        wasm_hash: BytesN<32>,
+        delay_ledgers: u32,
+    ) -> Result<(), RegistryError> {
+        authorize_admin(&env)?;
+        if !Self::is_paused(env.clone()) {
+            return Err(RegistryError::UpgradeRequiresPause);
+        }
+        if wasm_hash == BytesN::from_array(&env, &[0u8; 32]) {
+            return Err(RegistryError::InvalidUpgradeHash);
+        }
+        if !(5..=20_000).contains(&delay_ledgers) {
+            return Err(RegistryError::InvalidUpgradeDelay);
+        }
+        let ready_at_ledger = env
+            .ledger()
+            .sequence()
+            .checked_add(delay_ledgers)
+            .ok_or(RegistryError::InvalidUpgradeDelay)?;
+        let expires_at_ledger = ready_at_ledger
+            .checked_add(10_000)
+            .ok_or(RegistryError::InvalidUpgradeDelay)?;
+        env.storage().instance().set(
+            &DataKey::Upgrade,
+            &UpgradeProposal { wasm_hash, ready_at_ledger, expires_at_ledger },
+        );
+        renew_instance(&env);
+        Ok(())
+    }
+
+    /// Inspect the pending proposal without signing or invoking a payment.
+    pub fn pending_upgrade(env: Env) -> Option<UpgradeProposal> {
+        env.storage().instance().get(&DataKey::Upgrade)
+    }
+
+    /// Cancel even during an emergency pause; current admin must authorize.
+    pub fn cancel_upgrade(env: Env) -> Result<(), RegistryError> {
+        authorize_admin(&env)?;
+        env.storage().instance().remove(&DataKey::Upgrade);
+        renew_instance(&env);
+        Ok(())
+    }
+
+    /// Execute only the already published hash, within its approved window,
+    /// while paused. The replacement WASM must have been uploaded to Testnet.
+    /// State remains at the same contract ID; no constructor is re-run.
+    pub fn execute_upgrade(env: Env, wasm_hash: BytesN<32>) -> Result<(), RegistryError> {
+        authorize_admin(&env)?;
+        if !Self::is_paused(env.clone()) {
+            return Err(RegistryError::UpgradeRequiresPause);
+        }
+        let proposal: UpgradeProposal = env.storage().instance()
+            .get(&DataKey::Upgrade)
+            .ok_or(RegistryError::NoPendingUpgrade)?;
+        if proposal.wasm_hash != wasm_hash {
+            return Err(RegistryError::InvalidUpgradeHash);
+        }
+        let current = env.ledger().sequence();
+        if current < proposal.ready_at_ledger {
+            return Err(RegistryError::UpgradeNotReady);
+        }
+        if current > proposal.expires_at_ledger {
+            return Err(RegistryError::UpgradeExpired);
+        }
+        env.storage().instance().remove(&DataKey::Upgrade);
+        renew_instance(&env);
+        env.deployer().update_current_contract(ContractExecutable::Wasm(wasm_hash));
+        Ok(())
+    }
     /// Admin-controlled global stop. Reversing it also requires admin auth.
     pub fn set_paused(env: Env, paused: bool) -> Result<(), RegistryError> {
         authorize_admin(&env)?;
