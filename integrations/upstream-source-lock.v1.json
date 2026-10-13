@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "network": "testnet",
+  "verificationStatus": "source-only-not-verified",
+  "independentlyReproduced": false,
+  "proofVerified": false,
+  "paymentExecutionEnabled": false,
+  "notes": "Public upstream Git objects only. No reproducible private transfer, audited proof, deployed contract, Testnet wallet evidence or on-chain privacy claim.",
+  "sources": [
+    {
+      "rail": "confidential-token",
+      "repository": "OpenZeppelin/stellar-contracts",
+      "commit": "6b2f03402b6b98fad6b4247b5e15dce91a0b205d",
+      "path": "packages/confidential/README.md",
+      "gitBlobSha1": "d14f1c94c9642570717c9904c87822d0e35f44d3"
+    },
+    {
+      "rail": "confidential-token",
+      "repository": "OpenZeppelin/stellar-contracts",
+      "commit": "6b2f03402b6b98fad6b4247b5e15dce91a0b205d",
+      "path": "packages/confidential/docs/protocol/security.md",
+      "gitBlobSha1": "ce2e211db4644fefc6370d2c60a048333f22cdf6"
+    },
+    {
+      "rail": "confidential-token",
+      "repository": "OpenZeppelin/stellar-contracts",
+      "commit": "6b2f03402b6b98fad6b4247b5e15dce91a0b205d",
+      "path": "packages/confidential/circuits/transfer/src/main.nr",
+      "gitBlobSha1": "b652748a68a7eb7757d79f95e7eb4af5675d94c0"
+    },
+    {
+      "rail": "private-payments",
+      "repository": "NethermindEth/stellar-private-payments",
+      "commit": "0471e6be8161c2013cfc8387bd7b72b70e480cf5",
+      "path": "README.md",
+      "gitBlobSha1": "4592d032decf605072be4063c60f1e81e0d2d9cf"
+    },
+    {
+      "rail": "private-payments",
+      "repository": "NethermindEth/stellar-private-payments",
+      "commit": "0471e6be8161c2013cfc8387bd7b72b70e480cf5",
+      "path": "circuits/src/policy_tx_2_2.circom",
+      "gitBlobSha1": "bb6b47b867ca0928eeb8f93d63465f778f1a60a8"
+    },
+    {
+      "rail": "private-payments",
+      "repository": "NethermindEth/stellar-private-payments",
+      "commit": "0471e6be8161c2013cfc8387bd7b72b70e480cf5",
+      "path": "circuits/src/core/merkle.rs",
+      "gitBlobSha1": "0599bdf12cb71484bbdf75ca0cc6b032f39905bb"
+    }
+  ]
+}

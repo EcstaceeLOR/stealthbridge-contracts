@@ -1,0 +1,16 @@
+name: Independently hash pinned privacy source contracts
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify-upstream-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Reject falsified or missing public privacy source evidence
+        run: python3 -m unittest scripts/test_verify_upstream_source_lock.py
+      - name: Verify exact immutable Noir and Circom source blobs
+        run: python3 scripts/verify_upstream_source_lock.py
