@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "network": "testnet",
+  "networkPassphrase": "Test SDF Network ; September 2015",
+  "verificationStatus": "not-verified",
+  "paymentExecutionEnabled": false,
+  "requiredGates": {
+    "cryptographicSoundness": false,
+    "independentAudit": false,
+    "crossWalletReproduction": false,
+    "publicDisclosureReview": false,
+    "ledgerEvidence": false,
+    "issuerOrPoolAuthorization": false
+  },
+  "rails": [
+    {
+      "rail": "confidential-token",
+      "upstreamRepo": "OpenZeppelin/stellar-contracts",
+      "upstreamCommit": "6b2f03402b6b98fad6b4247b5e15dce91a0b205d",
+      "proofSystem": "UltraHonk",
+      "privacyIntent": "amount-confidential-parties-public",
+      "sourceProtocol": 29,
+      "vectors": [
+        {
+          "id": "ct-valid-testnet-transfer",
+          "inputClass": "pinned-wasm-two-test-wallets-correct-proof",
+          "expected": "requires-cryptographic-reproduction",
+          "evidence": null
+        },
+        {
+          "id": "ct-wrong-public-input",
+          "inputClass": "mismatched-amount-commitment-or-account-binding",
+          "expected": "proof-rejected-no-state-change",
+          "evidence": null
+        },
+        {
+          "id": "ct-wrong-verification-key",
+          "inputClass": "different-circuit-or-vk-hash",
+          "expected": "proof-rejected-no-state-change",
+          "evidence": null
+        },
+        {
+          "id": "ct-freeze-bypass",
+          "inputClass": "frozen-account-valid-amount-proof",
+          "expected": "authorization-rejected-no-state-change",
+          "evidence": null
+        },
+        {
+          "id": "ct-unauthorized-auditor",
+          "inputClass": "observer-without-registered-auditor-decryption-key",
+          "expected": "no-plaintext-disclosure",
+          "evidence": null
+        },
+        {
+          "id": "ct-public-edge",
+          "inputClass": "deposit-withdraw-transaction",
+          "expected": "underlying-amount-and-account-public",
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "rail": "private-payments",
+      "upstreamRepo": "NethermindEth/stellar-private-payments",
+      "upstreamCommit": "0471e6be8161c2013cfc8387bd7b72b70e480cf5",
+      "proofSystem": "Groth16",
+      "privacyIntent": "counterparty-and-amount-shielded-with-public-edges",
+      "sourceProtocol": null,
+      "vectors": [
+        {
+          "id": "spp-testnet-round-trip",
+          "inputClass": "two-independent-wallets-deposit-transfer-withdraw",
+          "expected": "requires-cryptographic-reproduction",
+          "evidence": null
+        },
+        {
+          "id": "spp-nullifier-replay",
+          "inputClass": "reused-private-spend-nullifier",
+          "expected": "proof-rejected-no-state-change",
+          "evidence": null
+        },
+        {
+          "id": "spp-forged-membership",
+          "inputClass": "invalid-association-set-proof",
+          "expected": "proof-rejected-no-state-change",
+          "evidence": null
+        },
+        {
+          "id": "spp-bad-withdraw",
+          "inputClass": "withdraw-output-exceeds-valid-private-balance",
+          "expected": "proof-rejected-no-state-change",
+          "evidence": null
+        },
+        {
+          "id": "spp-external-edge",
+          "inputClass": "deposit-withdraw-observer-transaction",
+          "expected": "external-amount-public",
+          "evidence": null
+        },
+        {
+          "id": "spp-client-state-loss",
+          "inputClass": "lost-client-note-secret-or-wallet-storage",
+          "expected": "no-fabricated-balance-or-success",
+          "evidence": null
+        }
+      ]
+    }
+  ],
+  "conclusion": "NO_GO"
+}

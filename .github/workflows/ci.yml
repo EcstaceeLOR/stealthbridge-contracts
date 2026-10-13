@@ -28,6 +28,8 @@ jobs:
       - run: cargo test --workspace --locked
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo build --workspace --locked --target wasm32v1-none --release
+      - name: Enforce proof, disclosure and cross-wallet evidence before private transfer claims
+        run: python3 scripts/check_privacy_evidence.py
       - name: Enforce issuer privacy and redemption remain independently unverified
         run: python3 scripts/check_issuer_capabilities.py
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'

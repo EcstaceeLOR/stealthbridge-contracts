@@ -9,3 +9,7 @@ Read [issuer-controlled threat model and ADR](../../docs/ADR-006-ISSUER-CONFIDEN
 The machine-readable `capability-review.v1.json` records ten **unverified** capabilities, source versions, known public disclosures, a missing issuer agreement and a **NO_GO** decision. CI runs `python3 scripts/check_issuer_capabilities.py` and tampering regressions. A later code update may not set verified/privacy/payment flags merely because local Soroban unit or deterministic WASM tests pass.
 
 **Permitted next activity:** independent build reproduction, reviewed Testnet fixtures, public RPC observations, audit/key disclosure tests, protocol compatibility and off-chain issuer/legal review, with no client signing/funding unless separately authorized. No production use.
+
+## Pre-execution privacy verification
+
+See [`VERIFICATION-GATES.md`](./VERIFICATION-GATES.md) and the [twelve negative/positive vector specifications](../privacy-evidence-vectors.v1.json). No actual signed Testnet privacy proof, on-chain contract ID, asset issuer, pool withdrawal or guaranteed amount confidentiality has been verified. All payment controls remain disabled.
