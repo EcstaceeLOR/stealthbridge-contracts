@@ -1,0 +1,16 @@
+name: Fail-closed privacy release verdict
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  privacy-verdict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Reject fabricated private transfers or cross-wallet verification
+        run: python3 -m unittest scripts/test_attest_privacy_release.py
+      - name: Compute mandatory NO_GO privacy release verdict
+        run: python3 scripts/attest_privacy_release.py
