@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-10-13",
+  "primitive": "issuer-controlled-confidential-token",
+  "upstream": {
+    "repository": "OpenZeppelin/stellar-contracts",
+    "commit": "6b2f03402b6b98fad6b4247b5e15dce91a0b205d",
+    "workspaceVersion": "0.7.1",
+    "sorobanSdk": "28.0.0",
+    "cliExample": "28.1.0",
+    "protocolExample": 29
+  },
+  "local": {
+    "sdk": "27.0.6",
+    "targetProtocol": 27,
+    "manifestStatus": "not-deployed",
+    "privacyVerified": false,
+    "paymentExecutionEnabled": false,
+    "issuerAgreementVerified": false
+  },
+  "capabilities": [
+    {
+      "name": "underlying_mint_burn",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "wrapper_deposit_withdraw",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "amount_confidential_transfer",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "freeze_and_compliance_policy",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "auditor_view",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "selective_disclosure",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "admin_rotation",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "clawback",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "supply_invariants",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    },
+    {
+      "name": "fiat_redemption",
+      "upstream": "documented-preview",
+      "stealthbridge": "unverified",
+      "testnetReceipt": null,
+      "externalAudit": null
+    }
+  ],
+  "disclosures": {
+    "counterpartyAddresses": "public",
+    "privateTransferAmounts": "intended-confidential-unverified",
+    "depositWithdrawAmounts": "public",
+    "eventsTiming": "public",
+    "issuerRedemption": "off-chain-external"
+  },
+  "decision": "NO_GO"
+}

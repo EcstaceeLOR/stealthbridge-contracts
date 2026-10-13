@@ -31,3 +31,9 @@ Evidence labels:
 4. Compare expected secrecy against observer ledger, contract events, RPC values, asset history, timing and wallet side channels.
 5. Independently test double spend, revoked issuer participant, missing trustline, wallet rejection and device note recovery.
 6. State honestly whether the primitive supports our multi-provider corridor contract without leaks or off-chain trust assumptions.
+
+## Issuer-controlled business confidentiality research checkpoint (2026-10-13)
+
+See [ADR-006](ADR-006-ISSUER-CONFIDENTIALITY.md) and its [machine-readable capability/disclosure review](../integrations/confidential-tokens/capability-review.v1.json), pinned to OpenZeppelin `stellar-contracts` commit `6b2f03402b6b98fad6b4247b5e15dce91a0b205d` (workspace 0.7.1; Soroban SDK 28.0.0). This differs from the local registry's Soroban SDK 27.0.6, so compiling our registries is not proof that upstream Confidential Tokens can be composed with them.
+
+**Critical issuer boundary:** wrapping an issuer's transparent SEP-41/SAC token is not issuer authorization to mint, burn, redeem or freeze. Auditor keys and viewing scope, optional policy hooks, reserve backing and off-chain regulated payouts have distinct owners and failure modes. In-wrapped transfer amounts may be confidential while counterparties remain visible and deposit/withdraw amounts public. Nothing has passed StealthBridge's independent cryptographic Testnet reproductions; all payment/privacy capability flags remain false. Unreproduced transaction hashes, contract IDs or providers must not be fabricated.

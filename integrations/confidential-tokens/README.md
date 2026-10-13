@@ -1,3 +1,11 @@
-# confidential-tokens
+# Confidential Tokens — issuer-controlled research (read-only)
 
-Placeholder for Sprint 0 architecture and feasibility research. No production implementation exists yet.
+**Status: NO GO, source review only.** There is **no** StealthBridge Confidential Token deployment, issuer agreement, issuer key, verified private-asset operation, mint/burn transaction, redemption partner, or proof of amount confidentiality on Testnet.
+
+The independently reviewed upstream source snapshot is [OpenZeppelin stellar-contracts at `6b2f03402b6b98fad6b4247b5e15dce91a0b205d`](https://github.com/OpenZeppelin/stellar-contracts/tree/6b2f03402b6b98fad6b4247b5e15dce91a0b205d), workspace **0.7.1**, `soroban-sdk 28.0.0`. Its example deployment guide requires Stellar CLI **28.1.0** and describes protocol 29 Testnet. Our independent three-registry workspace pins SDK 27.0.6 and target protocol 27, and does **not** claim compatibility with those upstream circuits, contracts or tools.
+
+Read [issuer-controlled threat model and ADR](../../docs/ADR-006-ISSUER-CONFIDENTIALITY.md), the [feasibility comparison](../../docs/PRIVACY-FEASIBILITY-MATRIX.md), and [pending deployment evidence chain](../../docs/TESTNET-DEPLOYMENT-EVIDENCE.md). Key upstream design details: amounts/balances are intended to be confidential through Pedersen commitments, UltraHonk proofs and auditor ciphertext; **sender/recipient addresses are not anonymous**. Entry/exit through the underlying SEP-41/SAC and account-policy changes remain public. Optional compliance hooks include freezing, SAC authorization pass-through, policy and clawback, but their existence is not evidence of correct issuer configuration.
+
+The machine-readable `capability-review.v1.json` records ten **unverified** capabilities, source versions, known public disclosures, a missing issuer agreement and a **NO_GO** decision. CI runs `python3 scripts/check_issuer_capabilities.py` and tampering regressions. A later code update may not set verified/privacy/payment flags merely because local Soroban unit or deterministic WASM tests pass.
+
+**Permitted next activity:** independent build reproduction, reviewed Testnet fixtures, public RPC observations, audit/key disclosure tests, protocol compatibility and off-chain issuer/legal review, with no client signing/funding unless separately authorized. No production use.
