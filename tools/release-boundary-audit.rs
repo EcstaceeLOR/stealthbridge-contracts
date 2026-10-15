@@ -6,7 +6,7 @@ const GATE: &str = include_str!("../contracts/governance-gate/src/lib.rs");
 const MANIFEST: &str = include_str!("../deployments/testnet/manifest.json");
 
 fn no_financial_writes(source: &str) -> bool {
-    const UNSUPPORTED: [&str; 11] = [
+    const UNSUPPORTED: [&str; 15] = [
         "pub fn transfer(",
         "pub fn withdraw(",
         "pub fn deposit(",
@@ -18,6 +18,10 @@ fn no_financial_writes(source: &str) -> bool {
         "pub fn authorize_payment(",
         "pub fn approve_settlement(",
         "pub fn submit_approval(",
+        "pub fn create_canonical_request(",
+        "pub fn record_review(",
+        "pub fn issue_review_request(",
+        "pub fn store_reviewer_identity(",
     ];
     !UNSUPPORTED.iter().any(|method| source.contains(method))
 }
@@ -69,6 +73,14 @@ mod tests {
     fn business_approval_methods_cannot_appear_in_public_governance_gate() {
         let mutated = format!("{GATE}\npub fn approve_settlement(");
         assert!(source_boundary(CORRIDOR, POLICY, &mutated, MANIFEST).is_err());
+    }
+
+    #[test]
+    fn private_tenant_business_reviews_must_not_become_public_chain_methods() {
+        for method in ["record_review", "create_canonical_request", "store_reviewer_identity"] {
+            let mutated = format!("{GATE}\\npub fn {method}(");
+            assert!(source_boundary(CORRIDOR, POLICY, &mutated, MANIFEST).is_err());
+        }
     }
 
     #[test]
