@@ -6,7 +6,7 @@ const GATE: &str = include_str!("../contracts/governance-gate/src/lib.rs");
 const MANIFEST: &str = include_str!("../deployments/testnet/manifest.json");
 
 fn no_financial_writes(source: &str) -> bool {
-    const UNSUPPORTED: [&str; 8] = [
+    const UNSUPPORTED: [&str; 11] = [
         "pub fn transfer(",
         "pub fn withdraw(",
         "pub fn deposit(",
@@ -15,6 +15,9 @@ fn no_financial_writes(source: &str) -> bool {
         "pub fn settle(",
         "pub fn mint(",
         "pub fn burn(",
+        "pub fn authorize_payment(",
+        "pub fn approve_settlement(",
+        "pub fn submit_approval(",
     ];
     !UNSUPPORTED.iter().any(|method| source.contains(method))
 }
@@ -59,6 +62,12 @@ mod tests {
     #[test]
     fn a_new_fund_moving_method_requires_review() {
         let mutated = format!("{GATE}\npub fn transfer(");
+        assert!(source_boundary(CORRIDOR, POLICY, &mutated, MANIFEST).is_err());
+    }
+
+    #[test]
+    fn business_approval_methods_cannot_appear_in_public_governance_gate() {
+        let mutated = format!("{GATE}\npub fn approve_settlement(");
         assert!(source_boundary(CORRIDOR, POLICY, &mutated, MANIFEST).is_err());
     }
 
