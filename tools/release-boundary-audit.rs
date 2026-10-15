@@ -25,7 +25,7 @@ fn source_boundary(corridor: &str, policy: &str, gate: &str, manifest: &str) -> 
     }
     if !gate.contains("pub fn public_flags_allow_commitment(")
         || !gate.contains("pub fn check_commitment_batch(")
-        || !gate.contains("checks.len() > 8")
+        || !gate.contains("checks.len() > 8 {")
         || !gate.contains("Ok(Ok(true))")
     {
         return Err("Public governance reads must be bounded and fail closed");
