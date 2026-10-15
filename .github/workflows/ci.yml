@@ -33,6 +33,10 @@ jobs:
           "$RUNNER_TEMP/soroban-source-audit"
           rustc --edition=2021 --test -D warnings tools/source-audit.rs -o "$RUNNER_TEMP/soroban-source-audit-tests"
           "$RUNNER_TEMP/soroban-source-audit-tests"
+      - name: Audit platform release boundary with native Rust
+        run: |
+          rustc --edition=2021 --test -D warnings tools/release-boundary-audit.rs -o "$RUNNER_TEMP/release-boundary-audit"
+          "$RUNNER_TEMP/release-boundary-audit"
       - run: cargo test --workspace --locked
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - run: cargo build --workspace --locked --target wasm32v1-none --release
