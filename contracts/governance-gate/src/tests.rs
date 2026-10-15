@@ -82,6 +82,12 @@ fn commitment_bound_gate_requires_exact_active_policy_and_corridor() {
         },
     );
     assert!(gate.public_flags_allow_commitment(&corridor, &policy, &1, &v1));
+    assert!(!gate.public_flags_allow_commitment(
+        &corridor,
+        &policy,
+        &1,
+        &BytesN::from_array(&env, &[0u8; 32])
+    ));
     assert!(!gate.public_flags_allow_commitment(&corridor, &policy, &1, &v2));
     assert!(!gate.public_flags_allow_commitment(&corridor, &policy, &0, &v1));
     assert!(!gate.public_flags_allow_commitment(&corridor, &policy, &2, &v1));

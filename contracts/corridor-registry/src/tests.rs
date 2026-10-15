@@ -579,3 +579,27 @@ fn expired_persistent_data_is_restored_by_local_host_model() {
     f.write(&id, false);
     assert_eq!(f.ttls(&id), (TTL_EXTEND, TTL_EXTEND));
 }
+
+#[test]
+fn zero_corridor_config_digest_never_becomes_public_approval() {
+    let fixture = Fixture::new();
+    fixture.env.mock_all_auths();
+    let client = fixture.client();
+    let id = String::from_str(&fixture.env, "issuer_review_required");
+    let zero = BytesN::from_array(&fixture.env, &[0u8; 32]);
+    let reviewed = BytesN::from_array(&fixture.env, &[5u8; 32]);
+    client.set_enabled(&id, &true);
+    assert_eq!(
+        client.try_approve_config(&id, &zero, &150),
+        Err(Ok(RegistryError::InvalidConfigDigest))
+    );
+    assert!(!client.is_enabled_with_digest(&id, &zero));
+    client.approve_config(&id, &reviewed, &150);
+    assert!(client.is_enabled_with_digest(&id, &reviewed));
+    assert!(!client.is_enabled_with_digest(&id, &zero));
+    client.set_enabled(&id, &false);
+    client.set_enabled(&id, &true);
+    assert!(!client.is_enabled_with_digest(&id, &reviewed));
+    client.set_paused(&true);
+    assert!(!client.is_enabled_with_digest(&id, &reviewed));
+}

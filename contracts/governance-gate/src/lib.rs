@@ -114,6 +114,7 @@ impl GovernanceGate {
             || policy.is_empty()
             || policy.len() > 128
             || expected_revision == 0
+            || expected_commitment == BytesN::from_array(&env, &[0u8; 32])
         {
             return false;
         }

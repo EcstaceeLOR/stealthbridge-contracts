@@ -54,6 +54,7 @@ pub enum RegistryError {
     NoPendingUpgrade = 10,
     UpgradeNotReady = 11,
     UpgradeExpired = 12,
+    InvalidConfigDigest = 13,
 }
 
 #[contract]
@@ -266,6 +267,11 @@ impl CorridorRegistry {
         if !Self::is_enabled(env.clone(), corridor.clone()) {
             return Err(RegistryError::NotEnabled);
         }
+        // A zero digest cannot identify a reviewed off-chain corridor
+        // configuration and must not be usable as public approval evidence.
+        if config_digest == BytesN::from_array(&env, &[0u8; 32]) {
+            return Err(RegistryError::InvalidConfigDigest);
+        }
         let current = env.ledger().sequence();
         let Some(span) = expires_at_ledger.checked_sub(current) else {
             return Err(RegistryError::InvalidExpiration);
@@ -291,7 +297,9 @@ impl CorridorRegistry {
     /// Strict public read: checks enabled state, exact digest and ledger
     /// expiration. No private data, liquidity or settlement is implied.
     pub fn is_enabled_with_digest(env: Env, corridor: String, expected_digest: BytesN<32>) -> bool {
-        if !Self::is_enabled(env.clone(), corridor.clone()) {
+        if expected_digest == BytesN::from_array(&env, &[0u8; 32])
+            || !Self::is_enabled(env.clone(), corridor.clone())
+        {
             return false;
         }
         matches!(
