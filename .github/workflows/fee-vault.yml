@@ -1,0 +1,39 @@
+name: Isolated fee vault prototype checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/fee-vault/**"
+      - ".github/workflows/fee-vault.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "contracts/fee-vault/**"
+      - ".github/workflows/fee-vault.yml"
+  workflow_dispatch:
+concurrency:
+  group: fee-vault-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  fee-vault:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.91.0
+        with:
+          targets: wasm32v1-none
+          components: rustfmt, clippy
+      - run: cargo fmt --manifest-path contracts/fee-vault/Cargo.toml --all -- --check
+      - run: cargo generate-lockfile --manifest-path contracts/fee-vault/Cargo.toml
+      - run: cargo test --manifest-path contracts/fee-vault/Cargo.toml --locked
+      - run: cargo clippy --manifest-path contracts/fee-vault/Cargo.toml --all-targets --locked -- -D warnings
+      - run: cargo build --manifest-path contracts/fee-vault/Cargo.toml --target wasm32v1-none --release --locked
+      - run: sha256sum contracts/fee-vault/target/wasm32v1-none/release/stealthbridge_fee_vault.wasm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fee-vault-prototype-wasm-${{ github.sha }}
+          path: contracts/fee-vault/target/wasm32v1-none/release/stealthbridge_fee_vault.wasm
+          if-no-files-found: error
+          retention-days: 14
