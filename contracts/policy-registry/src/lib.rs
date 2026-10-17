@@ -818,17 +818,20 @@ mod tests {
         client.set_paused(&true);
         let hash = BytesN::from_array(&env, &[9; 32]);
         client.propose_upgrade(&hash, &20);
-        assert_eq!(env.events().all(), [
-            UpgradeStaged {
+        assert_eq!(
+            env.events().all(),
+            [UpgradeStaged {
                 wasm_hash: hash.clone(),
                 ready_at_ledger: 120,
                 expires_at_ledger: 10_120,
-            }.to_xdr(&env, &id)
-        ]);
+            }
+            .to_xdr(&env, &id)]
+        );
         client.cancel_upgrade();
-        assert_eq!(env.events().all(), [
-            UpgradeCancelled { wasm_hash: hash }.to_xdr(&env, &id)
-        ]);
+        assert_eq!(
+            env.events().all(),
+            [UpgradeCancelled { wasm_hash: hash }.to_xdr(&env, &id)]
+        );
     }
 
     #[test]
