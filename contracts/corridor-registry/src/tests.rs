@@ -141,6 +141,22 @@ fn upgrade_proposals_require_admin_pause_valid_hash_and_bounded_delay() {
 }
 
 #[test]
+fn public_upgrade_events_are_observable_without_contract_execution() {
+    let f = Fixture::new();
+    let client = f.client();
+    let wasm = BytesN::from_array(&f.env, &[11u8; 32]);
+    f.auth(&f.admin, "set_paused", (true,).into_val(&f.env));
+    client.set_paused(&true);
+    let initial = f.env.events().all().len();
+    f.auth(&f.admin, "propose_upgrade", (wasm.clone(), 20u32).into_val(&f.env));
+    client.propose_upgrade(&wasm, &20);
+    assert_eq!(f.env.events().all().len(), initial + 1);
+    f.auth(&f.admin, "cancel_upgrade", ().into_val(&f.env));
+    client.cancel_upgrade();
+    assert_eq!(f.env.events().all().len(), initial + 2);
+}
+
+#[test]
 fn upgrade_execution_rejects_wrong_hash_early_execution_expiration_and_unpause() {
     let f = Fixture::new();
     let client = f.client();
