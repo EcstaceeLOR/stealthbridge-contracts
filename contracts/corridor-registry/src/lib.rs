@@ -5,7 +5,8 @@
 //! "Enabled" is a governance flag, never a guarantee of available liquidity.
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env, String,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
+    String,
 };
 
 const TTL_THRESHOLD: u32 = 17_280;
@@ -184,7 +185,8 @@ impl CorridorRegistry {
             wasm_hash: wasm_hash.clone(),
             ready_at_ledger,
             expires_at_ledger,
-        }.publish(&env);
+        }
+        .publish(&env);
         renew_instance(&env);
         Ok(())
     }
@@ -201,7 +203,10 @@ impl CorridorRegistry {
 
         env.storage().instance().remove(&DataKey::Upgrade);
         if let Some(previous) = cancelled {
-            UpgradeCancelled { wasm_hash: previous.wasm_hash }.publish(&env);
+            UpgradeCancelled {
+                wasm_hash: previous.wasm_hash,
+            }
+            .publish(&env);
         }
 
         renew_instance(&env);
@@ -233,7 +238,10 @@ impl CorridorRegistry {
         }
         env.storage().instance().remove(&DataKey::Upgrade);
         renew_instance(&env);
-        UpgradeApplied { wasm_hash: wasm_hash.clone() }.publish(&env);
+        UpgradeApplied {
+            wasm_hash: wasm_hash.clone(),
+        }
+        .publish(&env);
         env.deployer().update_current_contract_wasm(wasm_hash);
         Ok(())
     }
