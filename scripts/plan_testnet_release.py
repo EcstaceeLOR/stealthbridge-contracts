@@ -5,6 +5,8 @@ Never signs, uploads, invokes, funds or submits a transaction. Only local
 source/WASM verification and printed operator commands. No private keys.
 """
 import argparse
+import base64
+import binascii
 import hashlib
 import json
 from pathlib import Path
@@ -29,6 +31,16 @@ def safe_alias(value):
     if not isinstance(value,str) or not ALIAS.fullmatch(value):
         raise ValueError("Use a named local Stellar CLI identity, not a secret key")
     return value
+
+def valid_contract_address(address):
+    if not isinstance(address,str) or not CONTRACT.fullmatch(address):
+        return False
+    try:
+        raw=base64.b32decode(address)
+    except (ValueError,binascii.Error):
+        return False
+    return (len(raw)==35 and raw[0]==16
+        and binascii.crc_hqx(raw[:33],0).to_bytes(2,"little")==raw[33:])
 
 def digest(path):
     h=hashlib.sha256()
@@ -87,7 +99,7 @@ def upgrade_plan(artifacts, identity, contract_name, contract_id, new_wasm,delay
     safe_alias(identity)
     if contract_name not in ("corridor-registry","policy-registry"):
         raise ValueError("Only pausable registries support in-place WASM upgrade")
-    if not CONTRACT.fullmatch(contract_id):
+    if not valid_contract_address(contract_id):
         raise ValueError("Pass the verified public on-chain C-address of this contract")
     if not isinstance(delay,int) or not (5<=delay<=20_000):
         raise ValueError("Upgrade delay must be 5 to 20,000 ledgers")
