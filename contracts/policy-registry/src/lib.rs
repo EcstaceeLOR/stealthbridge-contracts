@@ -14,6 +14,7 @@ enum DataKey {
     PendingAdmin,
     Paused,
     Rule(String),
+    Upgrade,
 }
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,6 +22,14 @@ pub struct PolicyRecord {
     pub revision: u32,
     pub enabled: bool,
     pub public_commitment: BytesN<32>,
+}
+/// An authorized public upgrade proposal. No secret witnesses or review identities.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UpgradeProposal {
+    pub wasm_hash: BytesN<32>,
+    pub ready_at_ledger: u32,
+    pub expires_at_ledger: u32,
 }
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -33,6 +42,12 @@ pub enum PolicyError {
     NoPendingAdmin = 5,
     Paused = 6,
     InvalidCommitment = 7,
+    UpgradeRequiresPause = 8,
+    InvalidUpgradeDelay = 9,
+    InvalidUpgradeHash = 10,
+    NoPendingUpgrade = 11,
+    UpgradeNotReady = 12,
+    UpgradeExpired = 13,
 }
 #[contract]
 pub struct PolicyRegistry;
@@ -94,6 +109,71 @@ impl PolicyRegistry {
         env.storage().instance().set(&DataKey::Admin, &successor);
         env.storage().instance().remove(&DataKey::PendingAdmin);
         extend_instance(&env);
+        Ok(())
+    }
+    /// Publish an already-uploaded WASM hash for an independently reviewed
+    /// time-delayed upgrade. Both proposal and execution require the same
+    /// current Soroban administrator, and policy updates remain paused.
+    pub fn propose_upgrade(
+        env: Env, wasm_hash: BytesN<32>, delay_ledgers: u32,
+    ) -> Result<(), PolicyError> {
+        require_admin(&env)?;
+        if !Self::is_paused(env.clone()) {
+            return Err(PolicyError::UpgradeRequiresPause);
+        }
+        if wasm_hash == BytesN::from_array(&env, &[0; 32]) {
+            return Err(PolicyError::InvalidUpgradeHash);
+        }
+        if !(5..=20_000).contains(&delay_ledgers) {
+            return Err(PolicyError::InvalidUpgradeDelay);
+        }
+        let ready_at_ledger = env.ledger().sequence()
+            .checked_add(delay_ledgers).ok_or(PolicyError::InvalidUpgradeDelay)?;
+        let expires_at_ledger = ready_at_ledger
+            .checked_add(10_000).ok_or(PolicyError::InvalidUpgradeDelay)?;
+        env.storage().instance().set(&DataKey::Upgrade, &UpgradeProposal {
+            wasm_hash, ready_at_ledger, expires_at_ledger
+        });
+        extend_instance(&env);
+        Ok(())
+    }
+
+    /// Public inspection of the exact pending executable and execution window.
+    pub fn pending_upgrade(env: Env) -> Option<UpgradeProposal> {
+        env.storage().instance().get(&DataKey::Upgrade)
+    }
+
+    /// Explicit administrator cancellation; cancellation requires a signature.
+    pub fn cancel_upgrade(env: Env) -> Result<(), PolicyError> {
+        require_admin(&env)?;
+        env.storage().instance().remove(&DataKey::Upgrade);
+        extend_instance(&env);
+        Ok(())
+    }
+
+    /// Switch WASM at the SAME contract address only after pause, admin auth,
+    /// matching hash, timelock and bounded expiry. Never auto-unpause.
+    /// Replacement bytecode and its storage schema require independent review.
+    pub fn execute_upgrade(env: Env, wasm_hash: BytesN<32>) -> Result<(), PolicyError> {
+        require_admin(&env)?;
+        if !Self::is_paused(env.clone()) {
+            return Err(PolicyError::UpgradeRequiresPause);
+        }
+        let pending: UpgradeProposal = env.storage().instance()
+            .get(&DataKey::Upgrade).ok_or(PolicyError::NoPendingUpgrade)?;
+        if pending.wasm_hash != wasm_hash {
+            return Err(PolicyError::InvalidUpgradeHash);
+        }
+        let current = env.ledger().sequence();
+        if current < pending.ready_at_ledger {
+            return Err(PolicyError::UpgradeNotReady);
+        }
+        if current > pending.expires_at_ledger {
+            return Err(PolicyError::UpgradeExpired);
+        }
+        env.storage().instance().remove(&DataKey::Upgrade);
+        extend_instance(&env);
+        env.deployer().update_current_contract_wasm(wasm_hash);
         Ok(())
     }
     pub fn is_paused(env: Env) -> bool {
