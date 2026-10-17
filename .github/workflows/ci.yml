@@ -60,3 +60,18 @@ jobs:
           name: corridor-registry-${{ github.sha }}
           path: artifacts/
           if-no-files-found: error
+      - name: Archive offline operator kit (no credentials or transactions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: stealthbridge-offline-testnet-kit-${{ github.sha }}
+          path: |
+            artifacts/
+            scripts/plan_testnet_release.py
+            scripts/verify_artifacts.py
+            scripts/preflight_testnet.py
+            scripts/validate_manifest.py
+            scripts/verify_public_interface.py
+            deployments/testnet/manifest.json
+            docs/UPGRADABLE-SOROBAN-OPERATIONS.md
+          if-no-files-found: error
+          retention-days: 14
