@@ -3,7 +3,7 @@
 //! switch. No protected amounts, personal information or payout authority.
 //! A policy flag is NOT a KYC/compliance decision or a proof verification.
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, Address, BytesN, Env, String,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env, String,
 };
 const TTL_THRESHOLD: u32 = 17_280;
 const TTL_EXTEND: u32 = 30 * TTL_THRESHOLD;
@@ -30,6 +30,24 @@ pub struct UpgradeProposal {
     pub wasm_hash: BytesN<32>,
     pub ready_at_ledger: u32,
     pub expires_at_ledger: u32,
+}
+/// Public release notice only. Contains no private witness, identity or payment.
+#[contractevent(topics = ["upgrade", "staged"])]
+#[derive(Clone)]
+pub struct UpgradeStaged {
+    pub wasm_hash: BytesN<32>,
+    pub ready_at_ledger: u32,
+    pub expires_at_ledger: u32,
+}
+#[contractevent(topics = ["upgrade", "cancel"])]
+#[derive(Clone)]
+pub struct UpgradeCancelled {
+    pub wasm_hash: BytesN<32>,
+}
+#[contractevent(topics = ["upgrade", "applied"])]
+#[derive(Clone)]
+pub struct UpgradeApplied {
+    pub wasm_hash: BytesN<32>,
 }
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -140,11 +158,16 @@ impl PolicyRegistry {
         env.storage().instance().set(
             &DataKey::Upgrade,
             &UpgradeProposal {
-                wasm_hash,
+                wasm_hash: wasm_hash.clone(),
                 ready_at_ledger,
                 expires_at_ledger,
             },
         );
+        UpgradeStaged {
+            wasm_hash: wasm_hash.clone(),
+            ready_at_ledger,
+            expires_at_ledger,
+        }.publish(&env);
         extend_instance(&env);
         Ok(())
     }
@@ -157,7 +180,13 @@ impl PolicyRegistry {
     /// Explicit administrator cancellation; cancellation requires a signature.
     pub fn cancel_upgrade(env: Env) -> Result<(), PolicyError> {
         require_admin(&env)?;
+        let cancelled: Option<UpgradeProposal> = env.storage().instance().get(&DataKey::Upgrade);
+
         env.storage().instance().remove(&DataKey::Upgrade);
+        if let Some(previous) = cancelled {
+            UpgradeCancelled { wasm_hash: previous.wasm_hash }.publish(&env);
+        }
+
         extend_instance(&env);
         Ok(())
     }
@@ -187,6 +216,7 @@ impl PolicyRegistry {
         }
         env.storage().instance().remove(&DataKey::Upgrade);
         extend_instance(&env);
+        UpgradeApplied { wasm_hash: wasm_hash.clone() }.publish(&env);
         env.deployer().update_current_contract_wasm(wasm_hash);
         Ok(())
     }
