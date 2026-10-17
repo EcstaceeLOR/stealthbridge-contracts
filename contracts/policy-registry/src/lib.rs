@@ -308,7 +308,7 @@ impl PolicyRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::testutils::{Address as _, Ledger as _, MockAuth, MockAuthInvoke};
+    use soroban_sdk::testutils::{Address as _, Events as _, Ledger as _, MockAuth, MockAuthInvoke};
     use soroban_sdk::{IntoVal, Val, Vec};
     #[test]
     fn revisions_are_monotonic_and_pause_fails_closed() {
@@ -791,6 +791,27 @@ mod tests {
         env.mock_auths(&[]);
         assert!(client.try_cancel_upgrade().is_err());
         assert_eq!(client.pending_upgrade().unwrap().wasm_hash, wasm);
+    }
+
+    #[test]
+    fn upgrade_lifecycle_emits_only_public_proposal_and_cancellation_evidence() {
+        let env = Env::default();
+        env.ledger().with_mut(|l| {
+            l.protocol_version = 27;
+            l.sequence_number = 100;
+            l.max_entry_ttl = TTL_EXTEND + 1000;
+        });
+        let admin = Address::generate(&env);
+        let id = env.register(PolicyRegistry, (admin,));
+        let client = PolicyRegistryClient::new(&env, &id);
+        env.mock_all_auths();
+        client.set_paused(&true);
+        let before = env.events().all().len();
+        let hash = BytesN::from_array(&env, &[9; 32]);
+        client.propose_upgrade(&hash, &20);
+        assert_eq!(env.events().all().len(), before + 1);
+        client.cancel_upgrade();
+        assert_eq!(env.events().all().len(), before + 2);
     }
 
     #[test]
