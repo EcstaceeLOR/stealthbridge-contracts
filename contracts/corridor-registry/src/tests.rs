@@ -148,7 +148,11 @@ fn public_upgrade_events_are_observable_without_contract_execution() {
     f.auth(&f.admin, "set_paused", (true,).into_val(&f.env));
     client.set_paused(&true);
     let initial = f.env.events().all().len();
-    f.auth(&f.admin, "propose_upgrade", (wasm.clone(), 20u32).into_val(&f.env));
+    f.auth(
+        &f.admin,
+        "propose_upgrade",
+        (wasm.clone(), 20u32).into_val(&f.env),
+    );
     client.propose_upgrade(&wasm, &20);
     assert_eq!(f.env.events().all().len(), initial + 1);
     f.auth(&f.admin, "cancel_upgrade", ().into_val(&f.env));
