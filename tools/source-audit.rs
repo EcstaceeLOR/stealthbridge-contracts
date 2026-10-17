@@ -134,6 +134,22 @@ fn audit() -> Result<(), Box<dyn Error>> {
     report_assert(!GATE.contains("update_current_contract_wasm")
         && !GATE.contains("pub fn execute_upgrade("),
         "public governance gate remains intentionally immutable")?;
+    for (name, source) in [("corridor", CORRIDOR), ("policy", POLICY)] {
+        for lifecycle_event in ["UpgradeStaged", "UpgradeCancelled", "UpgradeApplied"] {
+            report_assert(
+                source.contains(&format!("pub struct {lifecycle_event}"))
+                    && source.contains(&format!("{lifecycle_event} {{"))
+                    && source.contains(".publish(&env)"),
+                &format!("{name} must emit independently observable public upgrade audit events"),
+            )?;
+        }
+        report_assert(
+            source.contains("#[contractevent(topics = [\"upgrade\", \"staged\"])]")
+                && source.contains("#[contractevent(topics = [\"upgrade\", \"cancel\"])]")
+                && source.contains("#[contractevent(topics = [\"upgrade\", \"applied\"])]"),
+            &format!("{name} upgrade lifecycle event schema must remain stable"),
+        )?;
+    }
     // No one may inadvertently ship a settlement/payment/write method in the
     // immutable governance aggregation adapter without a separate review.
     report_assert(
