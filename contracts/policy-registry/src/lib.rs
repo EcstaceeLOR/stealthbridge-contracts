@@ -816,12 +816,12 @@ mod tests {
         let client = PolicyRegistryClient::new(&env, &id);
         env.mock_all_auths();
         client.set_paused(&true);
-        let before = env.events().all().len();
+        let before = env.events().all().events().len();
         let hash = BytesN::from_array(&env, &[9; 32]);
         client.propose_upgrade(&hash, &20);
-        assert_eq!(env.events().all().len(), before + 1);
+        assert_eq!(env.events().all().events().len(), before + 1);
         client.cancel_upgrade();
-        assert_eq!(env.events().all().len(), before + 2);
+        assert_eq!(env.events().all().events().len(), before + 2);
     }
 
     #[test]
