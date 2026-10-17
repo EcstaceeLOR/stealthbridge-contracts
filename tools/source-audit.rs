@@ -115,6 +115,25 @@ fn audit() -> Result<(), Box<dyn Error>> {
             && POLICY.contains("if record.enabled && Self::is_paused(env.clone())"),
         "governance pause must forbid new enabling writes",
     )?;
+    // Two registry upgrades require admin auth, emergency pause, exact uploaded
+    // hash, bounded timelock and a cancel path. GovernanceGate stays immutable.
+    for (name, source) in [("corridor", CORRIDOR), ("policy", POLICY)] {
+        report_assert(
+            source.contains("pub fn propose_upgrade(")
+                && source.contains("pub fn pending_upgrade(")
+                && source.contains("pub fn cancel_upgrade(")
+                && source.contains("pub fn execute_upgrade(")
+                && source.contains("update_current_contract_wasm(wasm_hash)")
+                && source.contains("UpgradeRequiresPause")
+                && source.contains("UpgradeNotReady")
+                && source.contains("UpgradeExpired")
+                && source.contains("InvalidUpgradeHash"),
+            &format!("{name} upgrade requires reviewed timelocked administrator safeguards"),
+        )?;
+    }
+    report_assert(!GATE.contains("update_current_contract_wasm")
+        && !GATE.contains("pub fn execute_upgrade("),
+        "public governance gate remains intentionally immutable")?;
     // No one may inadvertently ship a settlement/payment/write method in the
     // immutable governance aggregation adapter without a separate review.
     report_assert(
