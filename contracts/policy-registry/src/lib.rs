@@ -319,7 +319,7 @@ mod tests {
     use soroban_sdk::testutils::{
         Address as _, Events as _, Ledger as _, MockAuth, MockAuthInvoke,
     };
-    use soroban_sdk::{IntoVal, Val, Vec};
+    use soroban_sdk::{Event as _, IntoVal, Val, Vec};
     #[test]
     fn revisions_are_monotonic_and_pause_fails_closed() {
         let env = Env::default();
@@ -816,12 +816,19 @@ mod tests {
         let client = PolicyRegistryClient::new(&env, &id);
         env.mock_all_auths();
         client.set_paused(&true);
-        let before = env.events().all().events().len();
         let hash = BytesN::from_array(&env, &[9; 32]);
         client.propose_upgrade(&hash, &20);
-        assert_eq!(env.events().all().events().len(), before + 1);
+        assert_eq!(env.events().all(), [
+            UpgradeStaged {
+                wasm_hash: hash.clone(),
+                ready_at_ledger: 120,
+                expires_at_ledger: 10_120,
+            }.to_xdr(&env, &id)
+        ]);
         client.cancel_upgrade();
-        assert_eq!(env.events().all().events().len(), before + 2);
+        assert_eq!(env.events().all(), [
+            UpgradeCancelled { wasm_hash: hash }.to_xdr(&env, &id)
+        ]);
     }
 
     #[test]
