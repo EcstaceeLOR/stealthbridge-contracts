@@ -20,7 +20,8 @@ for name,contract in metadata["contracts"].items():
     expected_undisclosed = {
         "corridor-registry": {"__constructor", "propose_upgrade", "pending_upgrade",
                               "cancel_upgrade", "execute_upgrade"},
-        "policy-registry": {"__constructor"},
+        "policy-registry": {"__constructor", "propose_upgrade", "pending_upgrade",
+                            "cancel_upgrade", "execute_upgrade"},
         "governance-gate": {"__constructor"},
     }[name]
     assert methods-declared == expected_undisclosed, (
