@@ -3,7 +3,8 @@
 //! switch. No protected amounts, personal information or payout authority.
 //! A policy flag is NOT a KYC/compliance decision or a proof verification.
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env, String,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
+    String,
 };
 const TTL_THRESHOLD: u32 = 17_280;
 const TTL_EXTEND: u32 = 30 * TTL_THRESHOLD;
@@ -167,7 +168,8 @@ impl PolicyRegistry {
             wasm_hash: wasm_hash.clone(),
             ready_at_ledger,
             expires_at_ledger,
-        }.publish(&env);
+        }
+        .publish(&env);
         extend_instance(&env);
         Ok(())
     }
@@ -184,7 +186,10 @@ impl PolicyRegistry {
 
         env.storage().instance().remove(&DataKey::Upgrade);
         if let Some(previous) = cancelled {
-            UpgradeCancelled { wasm_hash: previous.wasm_hash }.publish(&env);
+            UpgradeCancelled {
+                wasm_hash: previous.wasm_hash,
+            }
+            .publish(&env);
         }
 
         extend_instance(&env);
@@ -216,7 +221,10 @@ impl PolicyRegistry {
         }
         env.storage().instance().remove(&DataKey::Upgrade);
         extend_instance(&env);
-        UpgradeApplied { wasm_hash: wasm_hash.clone() }.publish(&env);
+        UpgradeApplied {
+            wasm_hash: wasm_hash.clone(),
+        }
+        .publish(&env);
         env.deployer().update_current_contract_wasm(wasm_hash);
         Ok(())
     }
@@ -308,7 +316,9 @@ impl PolicyRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::testutils::{Address as _, Events as _, Ledger as _, MockAuth, MockAuthInvoke};
+    use soroban_sdk::testutils::{
+        Address as _, Events as _, Ledger as _, MockAuth, MockAuthInvoke,
+    };
     use soroban_sdk::{IntoVal, Val, Vec};
     #[test]
     fn revisions_are_monotonic_and_pause_fails_closed() {
