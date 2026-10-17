@@ -87,7 +87,7 @@ impl FeeVault {
         payer.require_auth();
         token::Client::new(&env, &asset(&env)).transfer(
             &payer,
-            &env.current_contract_address(),
+            env.current_contract_address(),
             &amount,
         );
         renew(&env);
