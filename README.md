@@ -4,12 +4,22 @@
 
 **Engineering roadmap:** [View the repository-specific plan](ROADMAP.md).
 
-## October 17 Testnet release verification
+## October 17 — verified on-chain Testnet governance deployment
 
-The latest [Soroban CI build at `130c577e`](https://github.com/stealthbridge-labs/stealthbridge-contracts/actions/runs/39030590122) reproduced and verified the three governance WASM/ABI artifacts. The official pinned Stellar CLI 27.1.0 is installed in the operator workstation, and the proposed administrator account exists on Stellar Testnet. **On-chain deployment is still pending:** the workstation has no matching CLI signer, a direct public RPC preflight returned HTTP 403, and there are **no attested contract C-addresses or signed deployment transactions**. The canonical manifest stays `not-deployed` and payments remain disabled.
+**All three Soroban governance contracts are deployed and their on-chain WASM
+verified against pinned CI artifacts.** The deployed administrator is the
+`operator_local` Stellar CLI account (`GC3Y…NX5TN`), **not** the separate
+`GBBC…DLTE` Freighter account. Their exact C-addresses, public transaction
+hashes, constructor bindings and code hashes are recorded in the
+[verified governance release report](deployments/testnet/VERIFIED-GOVERNANCE-RELEASE-2026-10-17.md)
+and [machine-readable evidence](deployments/testnet/governance-deployment-evidence.v2.json).
 
-See the [October 17 release evidence and remaining deployment gates](deployments/testnet/TESTNET-RELEASE-STATUS-2026-10-17.md). Those exact CI WASM hashes are *build provenance*, not deployed contract IDs.
-
+The **legacy canonical manifest v1** still reads `not-deployed` because
+its validator cannot represent all three contracts. This now describes an
+outdated integration record, **not the live chain**; a reviewed manifest v2
+migration is needed before backend/SDK/frontend can consume these addresses
+as trusted live contracts. No private payments, platform fee collection,
+custody, or fiat payout have been enabled.
 
 ## Rust-first Soroban engineering
 
@@ -41,15 +51,15 @@ CorridorRegistry ── public is_enabled(corridor) ─┐
                                                  ├── GovernanceGate
 PolicyRegistry ── public is_effective(policy) ───┘    │
                                                       └─ public_flags_allow()
-Future independently attested Testnet deployments → backend safe reads
+Three verified Testnet governance deployments → pending backend safe-read adapter
 Future audited private rail and settlement adapter (NOT implemented)
 ```
 
 **What exists:** three actual Rust/Soroban crates—[corridor registry](contracts/corridor-registry/README.md), [policy registry](contracts/policy-registry/README.md), and [read-only governance gate](contracts/governance-gate/README.md). They have scoped authorization, emergency-pause logic, local cross-contract tests and reproducible WASM/ABI artifact evidence. A combined public governance flag does not authorize token transfer, validate a privacy proof, or confirm settlement eligibility.
 
-**What does not exist:** the canonical `deployments/testnet/manifest.json` is still **not-deployed**. No contract ID, signed Testnet deployment, actual token/privacy verifier, issuer-backed asset, custody or fiat payout has been independently attested. The existing manifest v1 is not yet a full three-contract deployment-attestation format.
+**Current deployment state:** the three actual contract IDs and transactions are published in the [verified Testnet release evidence](deployments/testnet/VERIFIED-GOVERNANCE-RELEASE-2026-10-17.md). The old manifest v1 still says `not-deployed` and requires a reviewed three-contract compatibility migration. No privacy verifier, issuer-backed asset, custody, fee collector, or fiat payout is verified.
 
-**Near-term release plan:** verify artifacts and isolated Testnet RPC through the [preflight](deployments/testnet/OPERATOR-DEPLOYMENT-RUNBOOK.md); obtain an explicitly approved operator-controlled public G-address; deploy **only with separately approved local wallet signing**; independently verify actual on-chain WASM, source and constructor-bound registry addresses; record transactions and update a reviewed three-contract manifest before backend/SDK/frontend are allowed to consume live contract IDs.
+**Near-term integration plan:** migrate the canonical manifest to an independently reviewed three-contract format, sync typed ABI hashes across backend and SDK, add explicitly read-only Testnet RPC verification of the three contract IDs, and expose clear status in the frontend without enabling any payment or privacy rail. Fee charging requires a separate audited asset-transfer contract and transparent user consent.
 
 **Privacy roadmap:** evaluate Confidential Tokens for value confidentiality and Stellar Private Payments for relationship privacy as separate systems. Define issuer authority, private proof inputs, nullifier/replay protections, fee/TTL, metadata disclosure, account recovery and regulator access. Implement fund-moving contracts **only** when the chosen primitive, legal model, asset issuer and external settlement arrangements have passed security review.
 
@@ -59,7 +69,7 @@ Future audited private rail and settlement adapter (NOT implemented)
 
 [Frontend](https://github.com/stealthbridge-labs/stealthbridge-frontend) · [Backend](https://github.com/stealthbridge-labs/stealthbridge-backend) · [SDK](https://github.com/stealthbridge-labs/stealthbridge-sdk)
 
-> **Status:** research-stage Stellar **testnet-only** protocol. Three **public governance Soroban contracts** (corridor registry, policy registry, read-only governance gate) are compiled and tested as source; no verified on-chain deployments, privacy proofs, or fund-moving settlement primitives exist.
+> **Status:** research-stage Stellar **Testnet-only** protocol. Three public governance Soroban contracts are **deployed and their bytecode/admin/dependencies verified on Testnet**. No privacy proofs, platform fee collection, or fund-moving settlement primitives are operational.
 
 ## What is here?
 - `contracts/corridor-registry`: authorized and pausable on-chain public corridor governance.
@@ -67,7 +77,7 @@ Future audited private rail and settlement adapter (NOT implemented)
 - `contracts/governance-gate`: fail-closed cross-registry and bounded batch reads in Rust.
 - \`docs/PROTOCOL-ARCHITECTURE.md\`: confidentiality vs anonymity, issuer-controlled stablecoins, planned boundaries.
 - \`docs/TESTPLAN.md\`: formal verification milestones, no credentials required.
-- \`deployments/testnet/manifest.json\`: truthfully empty deployment manifest.
+- \`deployments/testnet/manifest.json\`: legacy v1 integration manifest, pending reviewed replacement; see [actual three-contract Testnet evidence](deployments/testnet/governance-deployment-evidence.v2.json).
 - \`docs/PRIVACY-MODEL.md\`: initial threat model.
 - \`docs/REFERENCES.md\`: official developer resources.
 
@@ -96,10 +106,11 @@ These commands run locally without signer credentials. CI publishes the WASM,
 ABI snapshot, source/tool versions, checksums, and a quantitative resource table.
 The artifact script compares two isolated release builds byte-for-byte.
 [Verification and benchmark details](docs/REGISTRY-VERIFICATION.md) describe
-what is measured and the local test limitations. The checked-in Testnet manifest
-remains `not-deployed`: a local build is not evidence of deployment, settlement,
-or verified network compatibility. Confirm the target network's protocol before
-any separately authorized deployment.
+what is measured and the local test limitations. The legacy canonical manifest remains `not-deployed` despite this now-verified
+governance Testnet release. Build reproducibility alone does not prove deployment;
+the [chain readback evidence](deployments/testnet/VERIFIED-GOVERNANCE-RELEASE-2026-10-17.md)
+separately records successful on-chain transactions, WASM, admin and dependency checks.
+This is not settlement or privacy verification.
 
 The CI pipeline runs the current workspace tests, Clippy, reproducible
 WASM builds of all three contracts, per-contract ABI hashing, artifact-integrity
@@ -125,7 +136,7 @@ No real funds; never commit credentials or witnesses. Review [SECURITY.md](SECUR
 
 The workspace includes the PolicyRegistry alongside the CorridorRegistry and the read-only GovernanceGate: [PolicyRegistry](contracts/policy-registry/README.md). It offers admin-authenticated policy commitment updates, strictly increasing revisions, and a fail-closed global pause. The governance contracts are intentionally **public configuration primitives**, not custody or ZK settlement solutions.
 
-Refer to [the policy security model](docs/POLICY-REGISTRY.md) and [the comprehensive roadmap](ROADMAP.md). No contract ID or live asset integration is claimed until independently verifiable deployment evidence exists.
+Refer to [the policy security model](docs/POLICY-REGISTRY.md) and [the comprehensive roadmap](ROADMAP.md). The governance contract IDs are attested on Testnet; no live asset integration or privacy rail is claimed.
 
 ## Detailed implementation guide
 

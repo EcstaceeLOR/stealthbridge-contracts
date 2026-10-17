@@ -1,5 +1,11 @@
 # Soroban Testnet release readiness — 17 October 2026
 
+> **Historical pre-deployment snapshot — superseded later on 17 October 2026.**
+> The three contracts subsequently deployed successfully. See the
+> [verified Testnet governance release](VERIFIED-GOVERNANCE-RELEASE-2026-10-17.md).
+> The original preflight notes below document the state *before* signing and
+> should not be interpreted as the current on-chain deployment status.
+
 > **State: NOT DEPLOYED — no signed transaction or on-chain contract ID has been verified.**
 > This page records reproducible *build evidence* and an incomplete deployment
 > preflight; it is not a deployed-contract announcement.

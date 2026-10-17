@@ -1,5 +1,13 @@
 # Testnet governance-contract deployment ceremony (operator approval required)
 
+> **Release update, 17 October 2026:** This original prospective ceremony
+> has been completed for the three public governance contracts with
+> `operator_local` as both Testnet signer and administrator. See the
+> [on-chain verification and transaction receipts](VERIFIED-GOVERNANCE-RELEASE-2026-10-17.md).
+> The older `not-deployed` statements below are a historical runbook baseline,
+> not a claim about the live Testnet ledger. Further upgrades or Mainnet
+> activity require separate reviews and authorization.
+
 **Status: not deployed.** This is a reviewed sequence for a future, explicit
 operator-approved Testnet deployment. The scripts here do **not** perform
 uploads, contract deployment, key generation, account funding, signing, or

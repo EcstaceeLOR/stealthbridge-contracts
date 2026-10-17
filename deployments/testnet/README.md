@@ -1,5 +1,28 @@
 # deployments/testnet
 
+## Current Testnet reality (17 October 2026)
+
+**Three public governance Soroban contracts have now been deployed** and their
+WASM/admin/dependency state independently fetched on Stellar Testnet. See the
+[verified deployment report](VERIFIED-GOVERNANCE-RELEASE-2026-10-17.md) and
+[machine-readable observation](governance-deployment-evidence.v2.json).
+The old **v1 canonical manifest below has not yet been migrated** to describe
+all three contracts. Its `not-deployed` marker is *stale for the observed chain*
+but remains a fail-closed integration state for older backend/SDK/frontend
+consumers. No live payments or platform-fee collection are enabled.
+
+Validate the newer, observed three-contract record against pinned WASM/ABI:
+
+```sh
+# Obtain the pinned 130c577e CI archive rather than rebuilding a later HEAD.
+python3 scripts/verify_artifacts.py --artifacts PATH_TO_PINNED_ARTIFACTS
+python3 scripts/validate_governance_observation.py --artifacts PATH_TO_PINNED_ARTIFACTS
+```
+
+This validator proves static source/hash/schema compatibility, **not** live
+transaction inclusion, code freshness or a security audit. Review the on-chain
+receipts and readbacks in the linked report.
+
 **17 October 2026 review:** [verified three-contract CI artifacts and outstanding operator steps](TESTNET-RELEASE-STATUS-2026-10-17.md). All three WASM/ABI files match the pinned release, but the administrator signer and live RPC preflight are not verified. No Testnet deployment transaction has been submitted; this page and the canonical manifest deliberately remain `not-deployed`.
 
 The manifest is intentionally `not-deployed`. Validate without network access:
