@@ -1,5 +1,7 @@
 # deployments/testnet
 
+**17 October 2026 review:** [verified three-contract CI artifacts and outstanding operator steps](TESTNET-RELEASE-STATUS-2026-10-17.md). All three WASM/ABI files match the pinned release, but the administrator signer and live RPC preflight are not verified. No Testnet deployment transaction has been submitted; this page and the canonical manifest deliberately remain `not-deployed`.
+
 The manifest is intentionally `not-deployed`. Validate without network access:
 
 ```sh

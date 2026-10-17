@@ -4,6 +4,13 @@
 
 **Engineering roadmap:** [View the repository-specific plan](ROADMAP.md).
 
+## October 17 Testnet release verification
+
+The latest [Soroban CI build at `130c577e`](https://github.com/stealthbridge-labs/stealthbridge-contracts/actions/runs/39030590122) reproduced and verified the three governance WASM/ABI artifacts. The official pinned Stellar CLI 27.1.0 is installed in the operator workstation, and the proposed administrator account exists on Stellar Testnet. **On-chain deployment is still pending:** the workstation has no matching CLI signer, a direct public RPC preflight returned HTTP 403, and there are **no attested contract C-addresses or signed deployment transactions**. The canonical manifest stays `not-deployed` and payments remain disabled.
+
+See the [October 17 release evidence and remaining deployment gates](deployments/testnet/TESTNET-RELEASE-STATUS-2026-10-17.md). Those exact CI WASM hashes are *build provenance*, not deployed contract IDs.
+
+
 ## Rust-first Soroban engineering
 
 **All on-chain StealthBridge smart contracts are written in Rust and compiled to WASM.**
