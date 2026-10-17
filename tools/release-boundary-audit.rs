@@ -26,9 +26,26 @@ fn no_financial_writes(source: &str) -> bool {
     !UNSUPPORTED.iter().any(|method| source.contains(method))
 }
 
+/// Organization sessions and reviewer identities must remain off-chain.
+/// A public governance contract cannot serve as an enterprise review database.
+fn excludes_private_review_state(source: &str) -> bool {
+    const PRIVATE: [&str; 6] = [
+        "organization_login_challenges",
+        "business_review_requests",
+        "business_review_records",
+        "session_secret",
+        "reviewer_subject",
+        "signature_hex",
+    ];
+    !PRIVATE.iter().any(|name|source.contains(name))
+}
+
 fn source_boundary(corridor: &str, policy: &str, gate: &str, manifest: &str) -> Result<(), &'static str> {
     if ![corridor, policy, gate].into_iter().all(no_financial_writes) {
         return Err("Governance source must not become a fund-moving contract");
+    }
+    if ![corridor,policy,gate].into_iter().all(excludes_private_review_state) {
+        return Err("Private enterprise sessions and approvals cannot be exposed on-chain");
     }
     if !gate.contains("pub fn public_flags_allow_commitment(")
         || !gate.contains("pub fn check_commitment_batch(")
@@ -79,6 +96,14 @@ mod tests {
     fn private_tenant_business_reviews_must_not_become_public_chain_methods() {
         for method in ["record_review", "create_canonical_request", "store_reviewer_identity"] {
             let mutated = format!("{GATE}\\npub fn {method}(");
+            assert!(source_boundary(CORRIDOR, POLICY, &mutated, MANIFEST).is_err());
+        }
+    }
+
+    #[test]
+    fn tenant_sessions_and_approval_database_fields_remain_off_chain() {
+        for leaked_field in ["session_secret", "business_review_records", "signature_hex"] {
+            let mutated = format!("{GATE}\nstruct PrivateState {{ {leaked_field}: u64 }}");
             assert!(source_boundary(CORRIDOR, POLICY, &mutated, MANIFEST).is_err());
         }
     }
