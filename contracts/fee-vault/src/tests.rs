@@ -23,7 +23,10 @@ fn paid_fees_are_withdrawable_only_to_current_administrator() {
     assert_eq!(vault.get_asset(), asset);
     assert!(vault.is_paused());
     assert_eq!(vault.vault_balance(), 0);
-    assert_eq!(vault.try_deposit_fee(&payer, &100), Err(Ok(FeeVaultError::Paused)));
+    assert_eq!(
+        vault.try_deposit_fee(&payer, &100),
+        Err(Ok(FeeVaultError::Paused))
+    );
     vault.set_paused(&false);
     vault.deposit_fee(&payer, &1_000);
     assert_eq!(vault.vault_balance(), 1_000);
@@ -32,7 +35,10 @@ fn paid_fees_are_withdrawable_only_to_current_administrator() {
     vault.claim_fees(&375);
     assert_eq!(vault.vault_balance(), 625);
     assert_eq!(token.balance(&operator), 375);
-    assert_eq!(vault.try_claim_fees(&626), Err(Ok(FeeVaultError::InsufficientBalance)));
+    assert_eq!(
+        vault.try_claim_fees(&626),
+        Err(Ok(FeeVaultError::InsufficientBalance))
+    );
     assert_eq!(vault.vault_balance(), 625);
 }
 
@@ -43,12 +49,21 @@ fn invalid_amounts_and_overdrafts_fail_closed() {
     let token = token::Client::new(&env, &asset);
     vault.set_paused(&false);
     for amount in [0, -1, i128::MIN] {
-        assert_eq!(vault.try_deposit_fee(&payer, &amount), Err(Ok(FeeVaultError::InvalidAmount)));
-        assert_eq!(vault.try_claim_fees(&amount), Err(Ok(FeeVaultError::InvalidAmount)));
+        assert_eq!(
+            vault.try_deposit_fee(&payer, &amount),
+            Err(Ok(FeeVaultError::InvalidAmount))
+        );
+        assert_eq!(
+            vault.try_claim_fees(&amount),
+            Err(Ok(FeeVaultError::InvalidAmount))
+        );
     }
     assert_eq!(token.balance(&payer), 1_000_000);
     assert_eq!(vault.vault_balance(), 0);
-    assert_eq!(vault.try_claim_fees(&1), Err(Ok(FeeVaultError::InsufficientBalance)));
+    assert_eq!(
+        vault.try_claim_fees(&1),
+        Err(Ok(FeeVaultError::InsufficientBalance))
+    );
 }
 
 #[test]
@@ -58,7 +73,10 @@ fn emergency_pause_blocks_new_fees_but_not_operator_recovery() {
     vault.set_paused(&false);
     vault.deposit_fee(&payer, &100);
     vault.set_paused(&true);
-    assert_eq!(vault.try_deposit_fee(&payer, &1), Err(Ok(FeeVaultError::Paused)));
+    assert_eq!(
+        vault.try_deposit_fee(&payer, &1),
+        Err(Ok(FeeVaultError::Paused))
+    );
     vault.claim_fees(&100);
     assert_eq!(token::Client::new(&env, &asset).balance(&operator), 100);
     assert_eq!(vault.vault_balance(), 0);
@@ -81,7 +99,10 @@ fn accepted_administrator_handover_changes_claim_destination() {
     assert_eq!(vault.get_admin(), successor);
     vault.claim_fees(&90);
     assert_eq!(token::Client::new(&env, &asset).balance(&successor), 90);
-    assert_eq!(vault.try_accept_admin(), Err(Ok(FeeVaultError::NoPendingAdmin)));
+    assert_eq!(
+        vault.try_accept_admin(),
+        Err(Ok(FeeVaultError::NoPendingAdmin))
+    );
 }
 
 #[test]
