@@ -264,7 +264,7 @@ impl PolicyRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::testutils::{Address as _, MockAuth, MockAuthInvoke};
+    use soroban_sdk::testutils::{Address as _, Ledger as _, MockAuth, MockAuthInvoke};
     use soroban_sdk::{IntoVal, Val, Vec};
     #[test]
     fn revisions_are_monotonic_and_pause_fails_closed() {
@@ -701,4 +701,88 @@ mod tests {
         assert!(!client.is_effective(&id));
         assert!(!client.is_effective_commitment(&id, &2, &zero));
     }
+    #[test]
+    fn upgrade_proposal_requires_pause_authorized_admin_and_bounded_nonzero_hash() {
+        let env=Env::default();
+        env.ledger().with_mut(|l| {
+            l.protocol_version=27;
+            l.sequence_number=100;
+            l.max_entry_ttl=TTL_EXTEND+1000;
+        });
+        let admin=Address::generate(&env);
+        let id=env.register(PolicyRegistry,(admin,));
+        let client=PolicyRegistryClient::new(&env,&id);
+        let wasm=BytesN::from_array(&env,&[9;32]);
+        assert_eq!(client.pending_upgrade(),None);
+        env.mock_auths(&[]);
+        assert!(client.try_propose_upgrade(&wasm,&10).is_err());
+        env.mock_all_auths();
+        assert_eq!(client.try_propose_upgrade(&wasm,&10),Err(Ok(PolicyError::UpgradeRequiresPause)));
+        client.set_paused(&true);
+        assert_eq!(client.try_propose_upgrade(&wasm,&4),Err(Ok(PolicyError::InvalidUpgradeDelay)));
+        assert_eq!(client.try_propose_upgrade(&wasm,&20_001),Err(Ok(PolicyError::InvalidUpgradeDelay)));
+        let zero=BytesN::from_array(&env,&[0;32]);
+        assert_eq!(client.try_propose_upgrade(&zero,&10),Err(Ok(PolicyError::InvalidUpgradeHash)));
+        client.propose_upgrade(&wasm,&10);
+        assert_eq!(client.pending_upgrade(),Some(UpgradeProposal {
+            wasm_hash:wasm.clone(),ready_at_ledger:110,expires_at_ledger:10_110
+        }));
+        env.mock_auths(&[]);
+        assert!(client.try_cancel_upgrade().is_err());
+        assert_eq!(client.pending_upgrade().unwrap().wasm_hash,wasm);
+    }
+
+    #[test]
+    fn upgrade_execution_is_hash_bound_time_bound_and_never_bypasses_pause() {
+        let env=Env::default();
+        env.ledger().with_mut(|l|{
+            l.protocol_version=27;
+            l.sequence_number=100;
+            l.max_entry_ttl=TTL_EXTEND+1000;
+        });
+        let admin=Address::generate(&env);
+        let id=env.register(PolicyRegistry,(admin,));
+        let client=PolicyRegistryClient::new(&env,&id);
+        let expected=BytesN::from_array(&env,&[9;32]);
+        let wrong=BytesN::from_array(&env,&[7;32]);
+        env.mock_all_auths();
+        client.set_paused(&true);
+        assert_eq!(client.try_execute_upgrade(&expected),Err(Ok(PolicyError::NoPendingUpgrade)));
+        client.propose_upgrade(&expected,&5);
+        assert_eq!(client.try_execute_upgrade(&wrong),Err(Ok(PolicyError::InvalidUpgradeHash)));
+        assert_eq!(client.try_execute_upgrade(&expected),Err(Ok(PolicyError::UpgradeNotReady)));
+        client.set_paused(&false);
+        env.ledger().with_mut(|l| l.sequence_number=106);
+        assert_eq!(client.try_execute_upgrade(&expected),Err(Ok(PolicyError::UpgradeRequiresPause)));
+        client.set_paused(&true);
+        env.ledger().with_mut(|l| l.sequence_number=10_106);
+        assert_eq!(client.try_execute_upgrade(&expected),Err(Ok(PolicyError::UpgradeExpired)));
+        assert_eq!(client.pending_upgrade().unwrap().wasm_hash,expected);
+        client.cancel_upgrade();
+        assert_eq!(client.pending_upgrade(),None);
+        client.set_paused(&false);
+    }
+
+    #[test]
+    fn upgrade_cancel_respects_admin_auth_and_unpause_does_not_clear_proposal() {
+        let env=Env::default();
+        env.ledger().with_mut(|l|{
+            l.protocol_version=27; l.sequence_number=250; l.max_entry_ttl=TTL_EXTEND+1000;
+        });
+        let admin=Address::generate(&env);
+        let id=env.register(PolicyRegistry,(admin,));
+        let client=PolicyRegistryClient::new(&env,&id);
+        let hash=BytesN::from_array(&env,&[42;32]);
+        env.mock_all_auths();
+        client.set_paused(&true);
+        client.propose_upgrade(&hash,&100);
+        client.set_paused(&false);
+        assert!(client.pending_upgrade().is_some());
+        env.mock_auths(&[]);
+        assert!(client.try_cancel_upgrade().is_err());
+        env.mock_all_auths();
+        client.cancel_upgrade();
+        assert_eq!(client.pending_upgrade(),None);
+    }
+
 }
