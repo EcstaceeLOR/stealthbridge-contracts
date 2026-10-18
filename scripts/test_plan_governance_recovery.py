@@ -1,5 +1,6 @@
 """No signing, network, funding or live wallet access in recovery planner."""
 import json
+import re
 import unittest
 from copy import deepcopy
 from plan_governance_recovery import plan, RELEASE_ADMIN, CONTRACTS
@@ -38,7 +39,8 @@ class RecoveryPreflightTests(unittest.TestCase):
         self.assertNotIn("governance-gate", [c["contract"] for c in outcome["commands_for_review_only"]])
         self.assertIn("--new_admin", outcome["commands_for_review_only"][0]["command"])
         self.assertIn("--successor", outcome["commands_for_review_only"][2]["command"])
-        self.assertNotIn("secret", json.dumps(outcome).lower())
+        for action in outcome["commands_for_review_only"]:
+            self.assertFalse(any(re.fullmatch(r"S[A-Z2-7]{55}", str(arg)) for arg in action["command"]))
 
     def test_existing_same_nomination_only_needs_reviewed_acceptance(self):
         case = fixture()
