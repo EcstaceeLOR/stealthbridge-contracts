@@ -1,6 +1,6 @@
 # Soroban Architecture and Delivery Plan
 
-> Rust / Soroban SDK 27.0.6 · Stellar **Testnet-only** source workspace · reproducibly built, not deployed. No privacy verifier, real asset transfer, custody or fiat payout contract is verified.
+> Rust / Soroban SDK 27.0.6 · Stellar **Testnet-only** source workspace · three governance contracts deployed on 17 October 2026 (historical observations; canonical manifest v2 not yet approved). No privacy verifier, real asset transfer, custody or fiat payout contract is verified.
 
 ## Why the contracts are small
 
@@ -14,7 +14,7 @@ The current Soroban workspace has three crates:
 | `contracts/policy-registry` | Public versioned commitments, administrative updates, revocation and pause | Enforcing private limits or validating a ZK witness |
 | `contracts/governance-gate` | **Read-only** Soroban cross-contract lookup: true only if corridor and policy flags agree; fail closed | A private-payment verifier, custodial router, legal eligibility oracle |
 
-All privileged registry writes use Soroban authorization; emergency pauses reject newly enabled entries while allowing authorized disabling. All three contracts are compiled and tested under the pinned toolchain, including real local cross-contract call tests. **No verified contract IDs exist in the checked-in Testnet manifest.**
+All privileged registry writes use Soroban authorization; emergency pauses reject newly enabled entries while allowing authorized disabling. All three contracts are compiled and tested under the pinned toolchain, including real local cross-contract call tests. **Three governance contract IDs are recorded in the independently checked deployment evidence; the legacy canonical v1 manifest still says not-deployed and is not a trusted v2 integration manifest.**
 
 ## Dependency architecture
 
@@ -82,7 +82,7 @@ python3 scripts/preflight_testnet.py
 7. Introduce safe public on-chain **reads** first; keep `payment_execution_enabled=false`.
 8. Only pursue private settlement/asset adapters after formal threat review, verified upstream privacy proofs, wallet-authorization controls and external compliance evaluation.
 
-See the [operator runbook](../deployments/testnet/OPERATOR-DEPLOYMENT-RUNBOOK.md). The existing manifest remains `not-deployed`.
+See the [operator runbook](../deployments/testnet/OPERATOR-DEPLOYMENT-RUNBOOK.md). The legacy v1 manifest remains `not-deployed`; see `deployments/testnet/governance-deployment-evidence.v2.json` for historical on-chain observations. Never promote that observation into a trusted allowlist without reviewed release attestation.
 
 ## Protocol roadmap
 
