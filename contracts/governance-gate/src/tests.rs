@@ -200,7 +200,10 @@ fn recorded_governance_decision_is_not_reusable_after_policy_revision() {
     let operator = Address::generate(&env);
     let corridor_addr = env.register(CorridorRegistry, (operator.clone(),));
     let policy_addr = env.register(PolicyRegistry, (operator.clone(),));
-    let gate_addr = env.register(GovernanceGate, (operator, corridor_addr.clone(), policy_addr.clone()));
+    let gate_addr = env.register(
+        GovernanceGate,
+        (operator, corridor_addr.clone(), policy_addr.clone()),
+    );
     let corridors = CorridorRegistryClient::new(&env, &corridor_addr);
     let policies = PolicyRegistryClient::new(&env, &policy_addr);
     let gate = GovernanceGateClient::new(&env, &gate_addr);
@@ -209,16 +212,25 @@ fn recorded_governance_decision_is_not_reusable_after_policy_revision() {
     let first = BytesN::from_array(&env, &[21_u8; 32]);
     let revised = BytesN::from_array(&env, &[22_u8; 32]);
     corridors.set_enabled(&corridor, &true);
-    policies.set_rule(&policy, &PolicyRecord {
-        revision: 1, enabled: true, public_commitment: first.clone(),
-    });
+    policies.set_rule(
+        &policy,
+        &PolicyRecord {
+            revision: 1,
+            enabled: true,
+            public_commitment: first.clone(),
+        },
+    );
     let old = GovernanceCheck {
-        corridor: corridor.clone(), policy: policy.clone(),
-        expected_revision: 1, expected_commitment: first.clone(),
+        corridor: corridor.clone(),
+        policy: policy.clone(),
+        expected_revision: 1,
+        expected_commitment: first.clone(),
     };
     let new = GovernanceCheck {
-        corridor: corridor.clone(), policy: policy.clone(),
-        expected_revision: 2, expected_commitment: revised.clone(),
+        corridor: corridor.clone(),
+        policy: policy.clone(),
+        expected_revision: 2,
+        expected_commitment: revised.clone(),
     };
     let mut checks = Vec::new(&env);
     checks.push_back(old.clone());
@@ -226,9 +238,14 @@ fn recorded_governance_decision_is_not_reusable_after_policy_revision() {
     assert_eq!(gate.check_commitment_batch(&checks).get(0), Some(true));
     assert_eq!(gate.check_commitment_batch(&checks).get(1), Some(false));
 
-    policies.set_rule(&policy, &PolicyRecord {
-        revision: 2, enabled: true, public_commitment: revised,
-    });
+    policies.set_rule(
+        &policy,
+        &PolicyRecord {
+            revision: 2,
+            enabled: true,
+            public_commitment: revised,
+        },
+    );
     // Historical approval is not authority after a policy revision.
     let replaced = gate.check_commitment_batch(&checks);
     assert_eq!(replaced.get(0), Some(false));
