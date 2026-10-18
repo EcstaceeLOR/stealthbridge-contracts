@@ -2,6 +2,23 @@
 
 # StealthBridge Protocol & Smart Contracts
 
+## How deployed contracts connect to StealthBridge
+
+**Observed on Stellar Testnet (17 October 2026):** `CorridorRegistry`, `PolicyRegistry` and `GovernanceGate` are actual Soroban/Rust→WASM deployed governance instances. Exact on-chain IDs, receipts and hashes: [verified governance release](deployments/testnet/VERIFIED-GOVERNANCE-RELEASE-2026-10-17.md) · [machine-readable deployment observation](deployments/testnet/governance-deployment-evidence.v2.json). They manage **public governance state** and cross-registry decisions, not funds.
+
+```text
+Next.js product / preview --GET /api/bridge/*--> Rust Axum backend
+          |                                    |-- Stellar Testnet RPC
+          |                                    |     |-- CorridorRegistry
+          |                                    |     |-- PolicyRegistry
+          |                                    |     '-- GovernanceGate
+          |                                    '-- Neon PostgreSQL (journal/catalog)
+          '-- read-only browser wallet context
+TypeScript SDK -------- typed, validated API data --------^
+```
+
+The backend's `/v1/governance/release`, `/v1/governance/code` and `/v1/governance/admin` reads underpin the frontend's gated `/preview/governance` experience. The frontend does **not** submit Soroban invocations or move assets. A fresh executable/admin observation is separate from cryptographic authorization or privacy proofs. See the [cross-repository topology](https://github.com/stealthbridge-labs/.github/blob/main/docs/INTEGRATION-TOPOLOGY.md) and [attestation handoff](docs/GOVERNANCE-ATTESTATION-HANDOFF.md). Canonical `manifest.json` v1 remains an outdated `not-deployed` record until reviewed v2 promotion. **Platform fees, fund transfers, confidential rails and fiat payouts are not operational.**
+
 **Engineering roadmap:** [View the repository-specific plan](ROADMAP.md).
 
 ## October 17 — verified on-chain Testnet governance deployment
