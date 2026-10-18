@@ -31,7 +31,7 @@ network-health assertion.
    compare the actual contract address, executable hash, ledger sequence and
    live-until sequence. Do not interpret or publish arbitrary contract instance
    storage, which might include private or tenant-linked records.
-5. Compare the hash against the **specific October 17, 2026 audited-source
+5. Compare the hash against the **specific October 17, 2026 reviewed
    release artifact hash**. A mismatch can be an authorized upgrade OR a
    dangerous drift: it is not a blanket failure of Stellar, but requires
    explicit new-code review.
@@ -43,6 +43,31 @@ The current hash parser reads only the XDR header and the executable hash.
 It is intentionally **not a full XDR parser**, current bytecode readback, or
 administrator identity verification. Check actual WASM with the existing
 `scripts/verify_onchain_wasm.py` CLI-only workflow and pinned artifacts.
+
+## Current storage / current administrator read
+
+The same fresh Testnet `getLedgerEntries` response now also supports
+`GET /v1/governance/admin`: the backend decodes each **instance SCMap** and
+reads the exact `Admin` and `PendingAdmin` enum keys, registry
+`Paused` flags, and immutable GovernanceGate registry bindings. It refuses
+unrecognized bytecode, malformed storage and duplicate or noncanonical enum
+keys. Admin address observations are **not proof that anyone still controls
+the private key**. The TypeScript SDK refuses stale, future-dated or missing
+ledger-close timestamps; the frontend reports pending successor nominations
+without taking custody or requesting signatures.
+
+**XDR distinction that must remain pinned in tests:** `LedgerKeyContractData`
+encodes `CONTRACT_DATA(6) + SCAddress.Contract(1) + contract ID +
+SCV_LEDGER_KEY_CONTRACT_INSTANCE(20) + PERSISTENT(1)`. The corresponding
+`LedgerEntryData.ContractData` encodes `CONTRACT_DATA(6) +
+ContractDataEntry.ext(0) + SCAddress.Contract(1) + contract ID + key +
+durability + SCV_CONTRACT_INSTANCE(19) + ContractExecutable.Wasm(0) +
+hash + SCMap*`. Omitting **only the entry extension** can make offline
+fixtures appear valid while actual Stellar RPC responses fail. Backend unit
+tests include the public Stellar documentation's real XDR example to guard
+this distinction.
+
+Official reference: https://developers.stellar.org/docs/data/apis/rpc/api-reference/methods/getLedgerEntries
 
 ## Administrator continuity and fee-claim recovery
 
