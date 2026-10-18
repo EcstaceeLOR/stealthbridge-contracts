@@ -192,3 +192,66 @@ fn invalid_arguments_and_unknown_registry_addresses_never_authorize() {
     assert!(!gate.public_flags_allow(&oversized, &valid));
     assert!(!gate.public_flags_allow(&valid, &oversized));
 }
+
+#[test]
+fn recorded_governance_decision_is_not_reusable_after_policy_revision() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let operator = Address::generate(&env);
+    let corridor_addr = env.register(CorridorRegistry, (operator.clone(),));
+    let policy_addr = env.register(PolicyRegistry, (operator.clone(),));
+    let gate_addr = env.register(
+        GovernanceGate,
+        (operator, corridor_addr.clone(), policy_addr.clone()),
+    );
+    let corridors = CorridorRegistryClient::new(&env, &corridor_addr);
+    let policies = PolicyRegistryClient::new(&env, &policy_addr);
+    let gate = GovernanceGateClient::new(&env, &gate_addr);
+    let corridor = String::from_str(&env, "public_reconciliation_corridor");
+    let policy = String::from_str(&env, "approval_policy");
+    let first = BytesN::from_array(&env, &[21_u8; 32]);
+    let revised = BytesN::from_array(&env, &[22_u8; 32]);
+    corridors.set_enabled(&corridor, &true);
+    policies.set_rule(
+        &policy,
+        &PolicyRecord {
+            revision: 1,
+            enabled: true,
+            public_commitment: first.clone(),
+        },
+    );
+    let old = GovernanceCheck {
+        corridor: corridor.clone(),
+        policy: policy.clone(),
+        expected_revision: 1,
+        expected_commitment: first.clone(),
+    };
+    let new = GovernanceCheck {
+        corridor: corridor.clone(),
+        policy: policy.clone(),
+        expected_revision: 2,
+        expected_commitment: revised.clone(),
+    };
+    let mut checks = Vec::new(&env);
+    checks.push_back(old.clone());
+    checks.push_back(new.clone());
+    assert_eq!(gate.check_commitment_batch(&checks).get(0), Some(true));
+    assert_eq!(gate.check_commitment_batch(&checks).get(1), Some(false));
+
+    policies.set_rule(
+        &policy,
+        &PolicyRecord {
+            revision: 2,
+            enabled: true,
+            public_commitment: revised,
+        },
+    );
+    // Historical approval is not authority after a policy revision.
+    let replaced = gate.check_commitment_batch(&checks);
+    assert_eq!(replaced.get(0), Some(false));
+    assert_eq!(replaced.get(1), Some(true));
+    corridors.set_paused(&true);
+    let paused = gate.check_commitment_batch(&checks);
+    assert_eq!(paused.get(0), Some(false));
+    assert_eq!(paused.get(1), Some(false));
+}
