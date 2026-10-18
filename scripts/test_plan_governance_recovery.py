@@ -88,6 +88,53 @@ class RecoveryPreflightTests(unittest.TestCase):
             with self.subTest(addr=addr),self.assertRaises(ValueError):
                 plan(fixture(), addr)
 
+    def test_resume_after_first_registry_is_already_transferred(self):
+        case=fixture()
+        case["contracts"][0]["current_administrator"]=NEW
+        case["contracts"][0]["matches_deployment_administrator"]=False
+        case["same_administrator_for_all_contracts"]=False
+        case["all_administrators_match_deployment"]=False
+        result=plan(case,NEW)
+        self.assertEqual(result["migration_state"],"in-progress")
+        self.assertEqual(result["registries_already_migrated"],["corridor-registry"])
+        self.assertEqual(result["registries_remaining"],["policy-registry"])
+        self.assertEqual([c["phase"] for c in result["commands_for_review_only"]],
+                         ["propose","accept"])
+        self.assertEqual(result["commands_for_review_only"][0]["contract"],"policy-registry")
+        self.assertFalse(result["signed"])
+        self.assertFalse(result["broadcast"])
+
+    def test_fully_migrated_registries_have_no_more_recovery_commands(self):
+        case=fixture()
+        for i in [0,1]:
+            case["contracts"][i]["current_administrator"]=NEW
+            case["contracts"][i]["matches_deployment_administrator"]=False
+        # Immutable GovernanceGate still records the original administrator.
+        case["same_administrator_for_all_contracts"]=False
+        case["all_administrators_match_deployment"]=False
+        result=plan(case,NEW)
+        self.assertEqual(result["migration_state"],"complete")
+        self.assertEqual(result["commands_for_review_only"],[])
+        self.assertEqual(result["registries_remaining"],[])
+        self.assertTrue(result["gate_admin_is_immutable"])
+
+    def test_forged_aggregate_flags_third_party_admin_and_gate_change_fail(self):
+        case=fixture()
+        case["contracts"][0]["current_administrator"]=NEW
+        case["contracts"][0]["matches_deployment_administrator"]=False
+        with self.assertRaises(ValueError):plan(case,NEW)
+        case["same_administrator_for_all_contracts"]=False
+        with self.assertRaises(ValueError):plan(case,NEW)
+        case["all_administrators_match_deployment"]=False
+        self.assertEqual(plan(case,NEW)["migration_state"],"in-progress")
+        case["contracts"][1]["current_administrator"]="GAAACAQDAQCQMBYIBEFAWDANBYHRAEISCMKBKFQXDAMRUGY4DUPB7JZX"
+        case["contracts"][1]["matches_deployment_administrator"]=False
+        with self.assertRaises(ValueError):plan(case,NEW)
+        case=fixture()
+        case["contracts"][2]["current_administrator"]=NEW
+        case["contracts"][2]["matches_deployment_administrator"]=False
+        with self.assertRaises(ValueError):plan(case,NEW)
+
     def test_gate_immutable_and_staged_other_party_requires_manual_review(self):
         case=fixture()
         case["contracts"][2]["pending_administrator"]=NEW

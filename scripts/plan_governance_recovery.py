@@ -44,10 +44,11 @@ def plan(observation, successor):
     require(observation.get("network") == "testnet" and observation.get("source") == SOURCE,
             "only read-only Testnet instance-storage observations can be reviewed")
     for field in ("reviewed_release_executable_hashes_confirmed",
-                  "administrator_entries_read_from_current_storage",
-                  "same_administrator_for_all_contracts",
-                  "all_administrators_match_deployment"):
-        require(observation.get(field) is True, "all three reviewed-code ownership gates are required")
+                  "administrator_entries_read_from_current_storage"):
+        require(observation.get(field) is True, "reviewed-code storage verification is required")
+    require(type(observation.get("same_administrator_for_all_contracts")) is bool and
+            type(observation.get("all_administrators_match_deployment")) is bool,
+            "missing or malformed current administrator aggregate flags")
     for field in ("payment_execution_enabled", "fee_collection_enabled",
                   "privacy_verified", "signer_possession_verified"):
         require(observation.get(field) is False, "a fee, payment, privacy or signer claim is forbidden")
@@ -68,20 +69,35 @@ def plan(observation, successor):
     require(isinstance(entries, list) and len(entries) == 3,
             "expected three unique deployed governance entries")
     commands = []
+    current_addresses = []
+    already_migrated = []
     for index, (name, cid, parameter) in enumerate(CONTRACTS):
         record = entries[index]
         require(isinstance(record, dict) and record.get("name") == name and
-                record.get("contract_id") == cid and
-                record.get("current_administrator") == RELEASE_ADMIN and
-                record.get("matches_deployment_administrator") is True,
-                "contract address or current administrator does not match the reviewed release")
+                record.get("contract_id") == cid,
+                "contract binding does not match the reviewed Testnet release")
+        current = record.get("current_administrator")
+        require(public_account(current) and
+                record.get("matches_deployment_administrator") is (current == RELEASE_ADMIN),
+                "admin identity or deployment ownership flag is invalid")
+        current_addresses.append(current)
         pending = record.get("pending_administrator")
-        require(pending is None or public_account(pending), "invalid proposed successor")
+        require(pending is None or public_account(pending),
+                "invalid proposed successor")
         if parameter is None:
-            require(record.get("paused") is None and pending is None,
-                    "immutable gate has no live registry handover")
+            require(current == RELEASE_ADMIN and
+                    record.get("paused") is None and pending is None,
+                    "immutable GovernanceGate must preserve deployment-time bindings")
             continue
-        require(type(record.get("paused")) is bool, "missing registry pause state")
+        require(current in (RELEASE_ADMIN, successor),
+                "unrecognized third-party administrator: manual security review required")
+        require(type(record.get("paused")) is bool,
+                "missing registry pause state")
+        if current == successor:
+            require(pending is None,
+                    "accepted successor must not have an unexpected pending nomination")
+            already_migrated.append(name)
+            continue
         require(pending in (None, successor),
                 "another administrator nomination is pending; manual review required")
         common = [
@@ -90,19 +106,36 @@ def plan(observation, successor):
         ]
         if pending is None:
             commands.append({
-                "contract": name, "phase": "propose", "signer": "old locally-authorized administrator",
-                "command": common + ["operator_local", "--", "propose_admin", "--"+parameter, successor]
+                "contract": name, "phase": "propose",
+                "signer": "original locally-authorized administrator",
+                "command": common + ["operator_local", "--", "propose_admin",
+                                     "--"+parameter, successor]
             })
         commands.append({
-            "contract": name, "phase": "accept", "signer": "separately-authorized, recoverable successor",
+            "contract": name, "phase": "accept",
+            "signer": "separately-authorized, recoverable successor",
             "command": common + ["NEW_RECOVERABLE_IDENTITY", "--", "accept_admin"]
         })
+    # An intermediate step has different registry and immutable gate admins.
+    # A matching current-address flag must never be trusted from JSON alone.
+    require(observation["same_administrator_for_all_contracts"] is
+            (len(set(current_addresses)) == 1),
+            "inconsistent claim that all governance administrators are identical")
+    require(observation["all_administrators_match_deployment"] is
+            all(address == RELEASE_ADMIN for address in current_addresses),
+            "inconsistent claim about deployment-time administrator ownership")
+    migration_state = ("complete" if len(already_migrated) == 2 else
+                       "in-progress" if already_migrated else "not-started")
     return {
         "network": "testnet", "source_observation_ledger": ledger,
         "source_observation_closed_at_unix": close,
         "original_governance_admin": RELEASE_ADMIN,
         "proposed_registry_admin": successor,
         "gate_admin_is_immutable": True,
+        "migration_state": migration_state,
+        "registries_already_migrated": already_migrated,
+        "registries_remaining": [name for name, _, param in CONTRACTS
+                                 if param is not None and name not in already_migrated],
         "commands_for_review_only": commands,
         "signed": False, "broadcast": False, "safe_to_execute_automatically": False,
         "financial_execution_enabled": False,
@@ -113,6 +146,7 @@ def plan(observation, successor):
             "inspect the exact on-chain Soroban methods and authorization requirements with Stellar CLI",
             "manually authorize each proposal and accept with a DIFFERENT verified successor signer",
             "read current on-chain admin and pending state after every change; keep original credentials until confirmed",
+            "repeat preflight against a newly refreshed Testnet observation after each registry handover; never reuse old command plans",
             "GovernanceGate remains immutable and retains its original admin record"
         ],
     }
