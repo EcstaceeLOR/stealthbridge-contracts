@@ -2,6 +2,7 @@
 import json
 import re
 import unittest
+from time import time
 from copy import deepcopy
 from plan_governance_recovery import plan, RELEASE_ADMIN, CONTRACTS
 
@@ -12,6 +13,7 @@ def fixture():
         "schema_version": 1, "network": "testnet",
         "source": "stellar-rpc/getLedgerEntries/contract-instance-storage",
         "observed_ledger_sequence": 5300000,
+        "observed_ledger_closed_at_unix": str(int(time())),
         "reviewed_release_executable_hashes_confirmed": True,
         "administrator_entries_read_from_current_storage": True,
         "same_administrator_for_all_contracts": True,
@@ -67,6 +69,19 @@ class RecoveryPreflightTests(unittest.TestCase):
             case["contracts"][0][field]=val
             with self.subTest(field=field),self.assertRaises(ValueError):
                 plan(case, NEW)
+
+    def test_replayed_stale_future_and_missing_administrator_observations_fail(self):
+        now = int(time())
+        for timestamp in [str(now-181), str(now+31), "0",
+                          "2031-01-01", "", "999999999999999999999"]:
+            case=fixture()
+            case["observed_ledger_closed_at_unix"]=timestamp
+            with self.subTest(timestamp=timestamp),self.assertRaises(ValueError):
+                plan(case, NEW)
+        case=fixture()
+        del case["observed_ledger_closed_at_unix"]
+        with self.assertRaises(ValueError):
+            plan(case, NEW)
 
     def test_invalid_successor_and_unchanged_identity_rejected(self):
         for addr in ["G"*56, "S"*56, RELEASE_ADMIN, "", "G" + "A"*55]:

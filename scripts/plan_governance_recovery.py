@@ -11,6 +11,7 @@ import binascii
 import json
 import re
 from pathlib import Path
+from time import time
 
 RELEASE_ADMIN = "GC3YRVLB7IN7SNUYVWFUC6OD3QWJXCUZ4HOBNIPVGY7BZDVOYMDNX5TN"
 CONTRACTS = (
@@ -52,6 +53,15 @@ def plan(observation, successor):
         require(observation.get(field) is False, "a fee, payment, privacy or signer claim is forbidden")
     require(observation.get("release_administrator") == RELEASE_ADMIN,
             "release administrator differs from verified deployment")
+    # Saved administrator JSON is not signed chain evidence. Even review-only
+    # commands must be based on a recently verified Testnet head.
+    close = observation.get("observed_ledger_closed_at_unix")
+    require(isinstance(close, str) and close.isascii() and close.isdigit() and
+            1 <= len(close) <= 20, "ledger close timestamp missing or malformed")
+    close_unix = int(close)
+    now_unix = int(time())
+    require(close_unix > 0 and -30 <= now_unix-close_unix <= 180,
+            "administrator observation is stale or future-dated; refresh Testnet RPC")
     ledger = observation.get("observed_ledger_sequence")
     require(type(ledger) is int and ledger >= 5244293, "missing tested ledger sequence")
     entries = observation.get("contracts")
@@ -89,6 +99,7 @@ def plan(observation, successor):
         })
     return {
         "network": "testnet", "source_observation_ledger": ledger,
+        "source_observation_closed_at_unix": close,
         "original_governance_admin": RELEASE_ADMIN,
         "proposed_registry_admin": successor,
         "gate_admin_is_immutable": True,
