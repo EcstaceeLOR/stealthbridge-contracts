@@ -162,3 +162,7 @@ Refer to [the policy security model](docs/POLICY-REGISTRY.md) and [the comprehen
 ## Source-level contract interface shared with the SDK
 
 [`integrations/public-soroban-interface.v1.json`](integrations/public-soroban-interface.v1.json) inventories the *actual* CorridorRegistry, PolicyRegistry and GovernanceGate read methods and separates them from administrator-controlled writes. CI checks the public method names against Rust/Soroban source before an SDK can mirror the interface. This is a source ABI reference, **not** evidence of an on-chain contract instance, a privacy circuit, or a live transfer.
+
+## Customer wallet and privacy delivery
+
+Product integrations for Freighter, programmable passkey accounts, Confidential Tokens and Private Payments are tracked in [Wallet, Smart Account and ZK integration](docs/WALLET-SMART-ACCOUNT-AND-PRIVACY-INTEGRATION.md). The real public wallet connection is live on the frontend; smart-wallet deployment and verified private transfers are not yet enabled.
