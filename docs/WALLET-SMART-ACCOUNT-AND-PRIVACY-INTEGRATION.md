@@ -19,6 +19,29 @@ A public registry deployment is NOT a customer wallet or a private payment syste
 | Privacy rail | Confidential Tokens (private amounts, public counterparties) and Stellar Private Payments (private counterparty links within pools) | External preview/alpha; no verified StealthBridge payment integration |
 | Payment execution | Contract checks, ZK verification, issuer/regulatory/payout approval and safe release | Disabled |
 
+### User-wallet integration and restricted account research
+
+The primary /send and /business pages now use an actual Freighter-connected
+Testnet workspace rather than presenting historical deployment receipts.
+The frontend checks network freshness and never asks for private keys.
+
+The backend implements consent-based GET /v1/wallet/contracts/{address} using
+a checksum-valid C-address, RPC getLedgerEntries, entry TTL and current
+executable WASM hash. The SDK and frontend accept strictly checked responses
+only. This verifies an active public contract instance, not custom-account
+__check_auth behavior or ownership. A missing C-address does not authorize
+creating a wallet, and a found one does not authorize payments.
+
+An isolated source-only experiment lives at
+experiments/restricted-account. It explores Ed25519 signature validation
+with one pinned contract and method authorization context, and has independent
+Soroban native/WASM CI. This code is deliberately outside the three deployed
+governance contracts and deployment manifests. It is **not** a customer wallet,
+does not implement passkeys or recovery, and is not approved for real value.
+Before enabling, require a pinned reviewed Smart Account Kit / OpenZeppelin
+account, tested WebAuthn verifier, approved factory and relayer, recovery,
+multi-party policy tests, and independent review.
+
 ### Smart accounts: architecture decision
 
 Use **Stellar Smart Account Kit + OpenZeppelin Smart Account** as the intended passkey and team-policy model; do not conflate this with the StealthBridge GovernanceGate contract. Smart accounts are user-owned **contract accounts** implementing Soroban `__check_auth`, not a database alias for a G-address. Business deployments should support scoped signers, multiple approvers, recovery and revocation. Consumer deployments should offer passkey device setup and safe account recovery. Neither the application operator nor fee-vault deployer should be a universal user-account signer.
