@@ -1,0 +1,17 @@
+[package]
+name = "stealthbridge-restricted-account-research"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+soroban-sdk = "=27.0.6"
+
+[dev-dependencies]
+soroban-sdk = { version = "=27.0.6", features = ["testutils"] }
+ed25519-dalek = { version = "2.1", default-features = false, features = ["std"] }
