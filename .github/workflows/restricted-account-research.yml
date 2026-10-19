@@ -1,0 +1,33 @@
+name: Restricted smart-account research
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'experiments/restricted-account/**'
+      - '.github/workflows/restricted-account-research.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'experiments/restricted-account/**'
+      - '.github/workflows/restricted-account-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.91.0
+        with:
+          targets: wasm32v1-none
+          components: clippy
+      - name: Native Soroban host authorization tests
+        run: cargo test --manifest-path experiments/restricted-account/Cargo.toml
+      - name: Deny Clippy warnings
+        run: cargo clippy --manifest-path experiments/restricted-account/Cargo.toml --all-targets -- -D warnings
+      - name: Build unshipped contract for supported Soroban WASM target
+        run: cargo build --manifest-path experiments/restricted-account/Cargo.toml --target wasm32v1-none --release
