@@ -101,3 +101,28 @@ fn bad_signature_and_changed_payload_reject() {
         )
         .is_err());
 }
+
+#[test]
+fn signed_zero_arg_authorize_must_reject_argument_smuggling() {
+    let env = Env::default();
+    let owner = SigningKey::from_bytes(&[11; 32]);
+    let allowed_contract = Address::generate(&env);
+    let account = test_account(&env, &owner, &allowed_contract);
+    let (payload, signature) = signed_payload(&env, &owner);
+    // A correctly signed payload is not sufficient if the host auth context
+    // contains arguments. An unchecked argument could later represent a value,
+    // recipient, payment or privileged operation outside the intended scope.
+    let with_arguments = Context::Contract(ContractContext {
+        contract: allowed_contract.clone(),
+        fn_name: Symbol::new(&env, "authorize"),
+        args: vec![&env, 7u32.into_val(&env)],
+    });
+    assert!(env.try_invoke_contract_check_auth::<AuthError>(
+        &account,
+        &payload,
+        signature.into_val(&env),
+        &vec![&env, with_arguments],
+    ).is_err());
+    // Public discovery of this C-address does not establish ownership or
+    // turn this source-only research contract into an executable payment rail.
+}

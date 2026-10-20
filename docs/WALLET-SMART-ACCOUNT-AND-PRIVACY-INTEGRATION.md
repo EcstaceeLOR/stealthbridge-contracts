@@ -88,3 +88,14 @@ References:
 - [ ] Production release signoff for payment, privacy and fee-collection capabilities
 
 **Security rule:** public website, the SDK and contract release flags remain fail-closed. The user may connect a wallet and inspect public data today; they cannot send a confidential payment using StealthBridge yet.
+
+### Recipient contract preflight (public presence only)
+
+Send and Business must not treat a checksum-valid `C…` recipient as an active
+contract. The visitor may explicitly request `GET /v1/wallet/contracts/{address}`;
+only a live, exact-address, TTL-checked Testnet instance observation is sufficient
+to continue **local draft review**. A missing, stale, substituted or unobserved
+instance blocks that review. Neither this check nor an Ed25519 signature verifies
+whether the recipient can accept the selected asset or authorize settlement.
+The isolated restricted-account research now includes a signed nonempty-argument
+rejection case. No new contract has been deployed; execution remains disabled.
