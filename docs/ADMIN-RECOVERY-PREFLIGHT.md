@@ -42,9 +42,12 @@ Current recorded deployment operator:
    \`get_admin\` may still return the original deployer after registry
    succession. GovernanceGate has no privileged post-deployment operations,
    but a new gate deployment would need a separate reviewed release.
-9. The fee vault is a distinct, undeployed prototype. It has its OWN
-   administrator and successor flow. Registry migrations do not
-   automatically redirect claims from a future fee vault.
+9. The fee vault is a distinct, undeployed prototype. Its claim beneficiary
+   is independent of its administrator after a two-step handover. Both fee
+   deposits and fee claims start paused; the administrator can freeze claims
+   separately while recovering a compromised beneficiary. Registry migrations
+   do not redirect fee-vault claims. See
+   [fee-vault security and recovery](FEE-VAULT-SECURITY-AND-RECOVERY-30-32.md).
 
 For Mainnet, establish multisig/hardware signing, tested backups and an
 independent legal/security review first. No customer payments, transfer

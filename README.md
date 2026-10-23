@@ -19,6 +19,8 @@ TypeScript SDK -------- typed, validated API data --------^
 
 The backend's `/v1/governance/release`, `/v1/governance/code` and `/v1/governance/admin` reads underpin the frontend's gated `/preview/governance` experience. The frontend does **not** submit Soroban invocations or move assets. A fresh executable/admin observation is separate from cryptographic authorization or privacy proofs. See the [cross-repository topology](https://github.com/stealthbridge-labs/.github/blob/main/docs/INTEGRATION-TOPOLOGY.md) and [attestation handoff](docs/GOVERNANCE-ATTESTATION-HANDOFF.md). Canonical `manifest.json` v1 remains an outdated `not-deployed` record until reviewed v2 promotion. **Platform fees, fund transfers, confidential rails and fiat payouts are not operational.**
 
+The fee-vault research changes are documented in [role and key recovery review](docs/FEE-VAULT-SECURITY-AND-RECOVERY-30-32.md); cryptographic privacy must be independently established under [reproduction gates](docs/INDEPENDENT-PRIVACY-REPRODUCTION-29-31.md). Neither path is release approval.
+
 **Engineering roadmap:** [View the repository-specific plan](ROADMAP.md).
 
 ## October 17 — verified on-chain Testnet governance deployment
